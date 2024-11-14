@@ -184,18 +184,19 @@ export function setupDiceRoller() {
         }
 
         OBR.broadcast.sendMessage("rodeo.owlbear.diceResults", {
-            htmlContent: historyEntry.outerHTML
+            'command': userInput, 
+            'attackRolls': attackRolls, 
+            'damageResults': damageResults
         }).catch(error => {
             console.error("Failed to send broadcast message:", error);
         });
     });
 
     OBR.broadcast.onMessage("rodeo.owlbear.diceResults", (event) => {
-        const { htmlContent } = event.data;
-        const historyContainer = document.getElementById('rollHistory');
-        const newEntry = document.createElement('div');
-        newEntry.innerHTML = htmlContent;
-        historyContainer.prepend(newEntry);
+        const { command, attackRolls, damageResults } = event.data;
+        const rollHistoryContainer = document.getElementById('rollHistory');
+        const historyEntry = createHistoryEntry(command, attackRolls, damageResults);
+        rollHistoryContainer.prepend(historyEntry);
         if (rollHistoryContainer.children.length >= 20) {
             rollHistoryContainer.removeChild(rollHistoryContainer.lastChild); // Remove the oldest entry
         }
@@ -257,8 +258,15 @@ function parseInput(userInput) {
     // *** Change 1: Strip all spaces first ***
     const strippedInput = userInput.replace(/\s+/g, '');
 
-    // Adjusted pattern to not expect spaces
-    const pattern = /^(\d+)([nad])([+-]?\d+)?vs(\d+)([+-]?\d+)?dmg(.+)$/i;
+    // Updated pattern to capture multiple attack bonuses and multiple AC modifiers
+    // Pattern breakdown:
+    // ^(\d+)                       - Capture number of attacks
+    // ([nad])                      - Capture modifier (n, a, d)
+    // ((?:[+-](?:\d+d\d+|\d+))*)  - Capture attack bonuses (e.g., +3+1d4-2)
+    // vs(\d+)                      - Capture base target AC
+    // ((?:[+-]\d+)*)               - Capture multiple AC modifiers (e.g., +2+3-1)
+    // dmg(.+)$                     - Capture damage expression
+    const pattern = /^(\d+)([nad])((?:[+-](?:\d+d\d+|\d+))*)vs(\d+)((?:[+-]\d+)*)dmg(.+)$/i;
     const match = strippedInput.match(pattern);
     if (!match) {
         console.error(`User input does not match the expected pattern.`);
@@ -267,12 +275,26 @@ function parseInput(userInput) {
 
     const num_attacks = parseInt(match[1], 10);
     const modifier = match[2].toLowerCase();
-    const attack_bonus = match[3] ? parseInt(match[3], 10) : 0;
+    const attack_bonus_str = match[3]; // e.g., "+3+1d4-2+1d4"
     const base_target_ac = parseInt(match[4], 10);
-    const ac_modifier = match[5] ? parseInt(match[5], 10) : 0;
-    const target_ac = base_target_ac + ac_modifier;
+    const ac_modifiers_str = match[5]; // e.g., "+2+3-1"
     const damage_expr = match[6].trim();
 
+    // Calculate total AC modifier
+    let ac_modifier = 0;
+    if (ac_modifiers_str) {
+        // Regex to match each AC modifier term (e.g., +2, -1)
+        const acModifierPattern = /([+-]\d+)/g;
+        const acMatches = ac_modifiers_str.match(acModifierPattern);
+        if (acMatches) {
+            for (const mod of acMatches) {
+                ac_modifier += parseInt(mod, 10);
+            }
+        }
+    }
+    const target_ac = base_target_ac + ac_modifier;
+
+    // Validation
     if (!Number.isInteger(num_attacks) || num_attacks < 1) {
         console.error(`Invalid number of attacks: ${match[1]}`);
         return null;
@@ -288,22 +310,71 @@ function parseInput(userInput) {
         return null;
     }
 
+    // Parse attack bonuses
+    const attack_bonus = [];
+    if (attack_bonus_str) {
+        // Regex to match each bonus term (e.g., +3, -2, +1d4)
+        const bonusPattern = /([+-])(?:\s*)(\d+d\d+|\d+)/gi;
+        let bonusMatch;
+        while ((bonusMatch = bonusPattern.exec(attack_bonus_str)) !== null) {
+            const operator = bonusMatch[1];
+            const value = bonusMatch[2];
+            if (/^\d+d\d+$/i.test(value)) {
+                // It's a dice roll
+                const [count, diceType] = value.toLowerCase().split('d').map(Number);
+                if (isNaN(count) || isNaN(diceType)) {
+                    console.error(`Invalid dice notation in attack bonus: ${value}`);
+                    return null;
+                }
+                attack_bonus.push({
+                    operator,
+                    isDice: true,
+                    count,
+                    diceType
+                });
+            } else {
+                // It's a numerical bonus
+                const number = parseInt(value, 10);
+                if (isNaN(number)) {
+                    console.error(`Invalid numerical value in attack bonus: ${value}`);
+                    return null;
+                }
+                attack_bonus.push({
+                    operator,
+                    isDice: false,
+                    value: number
+                });
+            }
+        }
+    }
+
+    // Parse damage expression
     const damage_components = parseDamageExpression(damage_expr);
     if (!damage_components) {
         console.error(`Failed to parse damage expression: "${damage_expr}"`);
         return null;
     }
 
+    console.log({
+        num_attacks,
+        modifier,
+        attack_bonus, // Now a list of bonuses
+        base_target_ac,
+        ac_modifier,
+        target_ac,
+        damage_components
+    });
     return {
         num_attacks,
         modifier,
-        attack_bonus,
+        attack_bonus, // Now a list of bonuses
         base_target_ac,
         ac_modifier,
         target_ac,
         damage_components
     };
 }
+
 
 // *** Revised Function: Perform attacks and calculate damage ***
 function performAttack(attackParams) {
@@ -329,11 +400,29 @@ function performAttack(attackParams) {
             natural_20 = (roll1 === 20);
         }
 
-        const total_attack = attack_roll + attackParams.attack_bonus;
+        // Resolve attack bonuses
+        let total_attack_bonus = 0;
+        attackParams.attack_bonus.forEach(bonus => {
+            if (bonus.isDice) {
+                // Roll the dice and apply operator
+                const { total } = rollDice(bonus.count, bonus.diceType);
+                if (isNaN(total)) {
+                    console.error(`Rolled NaN for diceType d${bonus.diceType}`);
+                } else {
+                    total_attack_bonus += (bonus.operator === '+' ? total : -total);
+                }
+            } else {
+                // Apply numerical bonus
+                total_attack_bonus += (bonus.operator === '+' ? bonus.value : -bonus.value);
+            }
+        });
+
+        const total_attack = attack_roll + total_attack_bonus;
+
         const isCrit = natural_20;
 
         // Determine hit or miss
-        const hit = isCrit || total_attack >= attackParams.target_ac;
+        const hit = isCrit || (total_attack >= attackParams.target_ac);
 
         // Format attack roll
         let attackStr;
@@ -386,6 +475,7 @@ function performAttack(attackParams) {
 
     return { attackRolls, damageResults };
 }
+
 
 // Function to determine damage color based on value
 function getDamageColor(damage) {
