@@ -135,7 +135,6 @@ function createHistoryEntry(command, attackRolls, damageResults) {
     card.appendChild(entry);
 
     card.onclick = function() {
-        console.log("hi")
         const inputField = document.getElementById('attackCommand');
         if (inputField) {
             inputField.value = command;
