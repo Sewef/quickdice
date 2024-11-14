@@ -1,7 +1,6 @@
 // diceRoller.js
 import OBR from "@owlbear-rodeo/sdk";
 
-// Function to roll a specified number of dice and return the total and individual rolls
 function rollDice(number, diceType) {
     if (!Number.isInteger(number) || number < 1) {
         console.error(`Invalid number of dice: ${number}`);
@@ -19,6 +18,195 @@ function rollDice(number, diceType) {
         total += roll;
     }
     return { total, individualRolls };
+}
+
+// Other functions for parsing input and performing attack calculations
+// (parseDamageExpression, parseInput, performAttack) remain the same...
+
+function createHistoryEntry(command, attackRolls, damageResults) {
+    // Create a card container
+    const card = document.createElement('div');
+    card.classList.add('card'); // Card class for styling
+
+    // Create the entry container for history data
+    const entry = document.createElement('div');
+    entry.classList.add('history-entry');
+
+    // Create the command display
+    const commandDiv = document.createElement('div');
+    commandDiv.innerText = command;
+    commandDiv.classList.add('code-font'); // Apply code font to command display
+
+    // Create attack roll display
+    const attackDiv = document.createElement('div');
+    attackDiv.innerHTML = attackRolls.join(', ');
+
+    // Create damage display
+    const damageDiv = document.createElement('div');
+
+    const damageExpressionParts = damageResults.map(result => {
+        if (result === 'm') {
+            return `<span class="damage-miss">m</span>`;
+        }
+
+        // Group damage by type and sum them
+        const damageByType = {};
+        result.forEach(d => {
+            const type = d.damageType || 'untyped';
+            if (type in damageByType) {
+                damageByType[type] += d.value;
+            } else {
+                damageByType[type] = d.value;
+            }
+        });
+
+        // Convert damageByType to array and sort by descending damage
+        const sortedDamage = Object.entries(damageByType)
+            .map(([type, value]) => ({ type, value }))
+            .sort((a, b) => b.value - a.value);
+
+        // Create damage strings
+        const damageStrings = sortedDamage.map(d => {
+            const colorClass = getDamageColor(d.value);
+            return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
+        }).join(' + ');
+
+        // Determine if square brackets are needed
+        if (sortedDamage.length > 1) {
+            return `[${damageStrings}]`;
+        } else {
+            return damageStrings;
+        }
+    });
+
+    // Calculate total damage per type across all attacks
+    const totalDamageByType = {};
+    damageResults.forEach(result => {
+        if (result === 'm') return; // Skip misses
+        // Group damage by type and sum
+        result.forEach(d => {
+            const type = d.damageType || 'untyped';
+            if (type in totalDamageByType) {
+                totalDamageByType[type] += d.value;
+            } else {
+                totalDamageByType[type] = d.value;
+            }
+        });
+    });
+
+    // Convert totalDamageByType to array and sort by descending damage
+    const sortedTotalDamage = Object.entries(totalDamageByType)
+        .map(([type, value]) => ({ type, value }))
+        .sort((a, b) => b.value - a.value);
+
+    // Create total damage strings with color coding for both numbers and types
+    const sortedTotalDamageStrings = sortedTotalDamage.map(d => {
+        const colorClass = getDamageColor(d.value);
+        return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
+    }).join(' + ');
+
+    // Calculate overall total damage
+    const overallTotalDamage = sortedTotalDamage.reduce((acc, d) => acc + d.value, 0);
+
+    // Create the "= total" part with appropriate color
+    let formattedTotalDamage;
+
+    if (sortedTotalDamage.length > 1) {
+        formattedTotalDamage = `${sortedTotalDamageStrings} = <span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}</span>`;
+        // Combine individual damage expressions and total damage
+        const formattedDamageDisplay = `${damageExpressionParts.join(' + ')} = ${formattedTotalDamage}`;
+        damageDiv.innerHTML = formattedDamageDisplay;
+    } else if (sortedTotalDamage.length === 1) {
+        // Only one damage type, include the type in the overall total
+        const totalType = sortedTotalDamage[0].type !== 'untyped' ? sortedTotalDamage[0].type : '';
+        formattedTotalDamage = `<span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}${totalType !== 'untyped' ? `<span class="damage-type">${totalType}</span>` : ''}</span>`;
+        // Since only one damage type per attack, display without brackets and include type
+        damageDiv.innerHTML = `${damageExpressionParts.join(' + ')} = ${formattedTotalDamage}`;
+    } else {
+        // No damage dealt
+        damageDiv.innerHTML = `${damageExpressionParts.join(' + ')}`;
+    }
+
+    entry.appendChild(commandDiv);
+    entry.appendChild(attackDiv);
+    entry.appendChild(damageDiv);
+
+    // Append entry to the card container
+    card.appendChild(entry);
+
+    card.onclick = function() {
+        console.log("hi")
+        const inputField = document.getElementById('attackCommand');
+        if (inputField) {
+            inputField.value = command;
+        }
+    };
+
+    return card;
+}
+
+export function setupDiceRoller() {
+    const attackCommandInput = document.getElementById('attackCommand');
+
+    const examples = [
+        '5a+4 vs {ac} dmg {count}d6fi+{bonus}bl+1d4',
+        '4d+3 vs {ac} dmg {count}d8+{bonus}ne+2d4ac',
+        '3a+2 vs {ac} dmg {count}d6co+{bonus}+1d6pi+5'
+    ];
+    
+    // Generate random values for AC and bonus
+    const randomAC = Math.floor(Math.random() * 4) + 10; // Random AC between 10 and 19
+    const randomBonus = Math.floor(Math.random() * 5) + 1; // Random bonus between 1 and 5
+    const randomCount = Math.floor(Math.random() * 3) + 1; // Random bonus between 1 and 5
+
+    // Pick a random example and replace placeholders
+    const randomExample = examples[Math.floor(Math.random() * examples.length)]
+        .replace('{ac}', randomAC)
+        .replace('{bonus}', randomBonus)
+        .replace('{count}', randomCount);
+
+    attackCommand.value = randomExample;
+    const rollHistoryContainer = document.getElementById('rollHistory');
+    const rollButton = document.getElementById('rollButton');
+
+    rollButton.addEventListener('click', () => {
+        const userInput = attackCommandInput.value.trim();
+        const attackParams = parseInput(userInput);
+        if (!attackParams) {
+            alert('Invalid input format. Please try again.');
+            return;
+        }
+        
+        const { attackRolls, damageResults } = performAttack(attackParams);
+        const historyEntry = createHistoryEntry(userInput, attackRolls, damageResults);
+        rollHistoryContainer.prepend(historyEntry);
+        if (rollHistoryContainer.children.length >= 20) {
+            rollHistoryContainer.removeChild(rollHistoryContainer.lastChild); // Remove the oldest entry
+        }
+
+        OBR.broadcast.sendMessage("rodeo.owlbear.diceResults", {
+            htmlContent: historyEntry.outerHTML
+        }).catch(error => {
+            console.error("Failed to send broadcast message:", error);
+        });
+    });
+
+    OBR.broadcast.onMessage("rodeo.owlbear.diceResults", (event) => {
+        const { htmlContent } = event.data;
+        const historyContainer = document.getElementById('rollHistory');
+        const newEntry = document.createElement('div');
+        newEntry.innerHTML = htmlContent;
+        historyContainer.prepend(newEntry);
+        if (rollHistoryContainer.children.length >= 20) {
+            rollHistoryContainer.removeChild(rollHistoryContainer.lastChild); // Remove the oldest entry
+        }
+    });
+
+    attackCommandInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            rollButton.click();
+        }
+    });
 }
 
 // *** Revised Function: Parse the damage expression into individual damage instances ***
@@ -71,7 +259,7 @@ function parseInput(userInput) {
     const strippedInput = userInput.replace(/\s+/g, '');
 
     // Adjusted pattern to not expect spaces
-    const pattern = /^(\d+)([nad])([+-]?\d+)?vs(\d+)([+-]?\d+)?dealing(.+)$/i;
+    const pattern = /^(\d+)([nad])([+-]?\d+)?vs(\d+)([+-]?\d+)?dmg(.+)$/i;
     const match = strippedInput.match(pattern);
     if (!match) {
         console.error(`User input does not match the expected pattern.`);
@@ -219,403 +407,4 @@ function getTotalDamageColor(total) {
     if (total >= 41 && total <= 60) return 'damage-cyan';
     if (total >= 61) return 'damage-neon-green';
     return 'damage-default';
-}
-
-// Function to set up the Dice Roller UI and interactions
-export function setupDiceRoller() {
-    const attackCommandInput = document.getElementById('attackCommand');
-    const rollButton = document.getElementById('rollButton');
-    const attackRollsDiv = document.getElementById('attackRolls');
-    const damageResultsDiv = document.getElementById('damageResults');
-    const rollHistoryUl = document.getElementById('rollHistory');
-    const history = [];
-
-    rollButton.addEventListener('click', () => {
-        const userInput = attackCommandInput.value.trim();
-
-        // *** Change 2: Remove all references to "exit" ***
-        // Removed the 'exit' condition and its associated code.
-
-        const attackParams = parseInput(userInput);
-        if (!attackParams) {
-            // *** Change 3: Remove all references to OBR.notification ***
-            // Removed OBR.notification.show for invalid input.
-            alert(`
-Invalid input format. Please try again.
-Expected format: '<num><modifier><+/-><bonus> vs <base_AC><+/-><ac_modifier> dealing <damage_expression>'
-Examples:
-  '5n+4 vs 16 dealing 1d6fi+3+2d8ne+1d4co+2pi+1d6+1d12fi'
-  '3a-2 vs 13+3 dealing 1d8fi'
-  '2d+5 vs 15-1 dealing 3d4+1'
-  '4n vs 14 dealing 2d10'
-            `);
-            return;
-        }
-
-        const { attackRolls, damageResults } = performAttack(attackParams);
-
-        // Display attack rolls
-        attackRollsDiv.innerHTML = attackRolls.join(', ');
-
-        // *** Revised Damage Display Logic ***
-        // Display damage results with color coding and formatted with types, grouped by attack
-        const damageExpressionParts = damageResults.map(result => {
-            if (result === 'm') {
-                return `<span class="damage-miss">m</span>`;
-            }
-
-            // Group damage by type and sum them
-            const damageByType = {};
-            result.forEach(d => {
-                const type = d.damageType || 'untyped';
-                if (type in damageByType) {
-                    damageByType[type] += d.value;
-                } else {
-                    damageByType[type] = d.value;
-                }
-            });
-
-            // Convert damageByType to array and sort by descending damage
-            const sortedDamage = Object.entries(damageByType)
-                .map(([type, value]) => ({ type, value }))
-                .sort((a, b) => b.value - a.value);
-
-            // Create damage strings
-            const damageStrings = sortedDamage.map(d => {
-                const colorClass = getDamageColor(d.value);
-                return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
-            }).join(' + ');
-
-            // Determine if square brackets are needed
-            if (sortedDamage.length > 1) {
-                return `[${damageStrings}]`;
-            } else {
-                return damageStrings;
-            }
-        });
-
-        // Calculate total damage per type across all attacks
-        const totalDamageByType = {};
-        damageResults.forEach(result => {
-            if (result === 'm') return; // Skip misses
-            // Group damage by type and sum
-            result.forEach(d => {
-                const type = d.damageType || 'untyped';
-                if (type in totalDamageByType) {
-                    totalDamageByType[type] += d.value;
-                } else {
-                    totalDamageByType[type] = d.value;
-                }
-            });
-        });
-
-        // Convert totalDamageByType to array and sort by descending damage
-        const sortedTotalDamage = Object.entries(totalDamageByType)
-            .map(([type, value]) => ({ type, value }))
-            .sort((a, b) => b.value - a.value);
-
-        // Create total damage strings with color coding for both numbers and types
-        const sortedTotalDamageStrings = sortedTotalDamage.map(d => {
-            const colorClass = getDamageColor(d.value);
-            return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
-        }).join(' + ');
-
-        // Calculate overall total damage
-        const overallTotalDamage = sortedTotalDamage.reduce((acc, d) => acc + d.value, 0);
-
-        // Create the "= total" part with appropriate color
-        let formattedTotalDamage;
-
-        if (sortedTotalDamage.length > 1) {
-            formattedTotalDamage = `${sortedTotalDamageStrings} = <span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}</span>`;
-            // Combine individual damage expressions and total damage
-            const formattedDamageDisplay = `${damageExpressionParts.join(' + ')} = ${formattedTotalDamage}`;
-            damageResultsDiv.innerHTML = formattedDamageDisplay;
-        } else if (sortedTotalDamage.length === 1) {
-            // Only one damage type, include the type in the overall total
-            const totalType = sortedTotalDamage[0].type !== 'untyped' ? sortedTotalDamage[0].type : '';
-            formattedTotalDamage = `<span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}${totalType !== 'untyped' ? `<span class="damage-type">${totalType}</span>` : ''}</span>`;
-            // Since only one damage type per attack, display without brackets and include type
-            damageResultsDiv.innerHTML = `${damageExpressionParts.join(' + ')} = ${formattedTotalDamage}`;
-        } else {
-            // No damage dealt
-            damageResultsDiv.innerHTML = `${damageExpressionParts.join(' + ')}`;
-        }
-
-        // *** Updated Notification to Include Attack Rolls and Damage on Separate Lines ***
-        // Create damage expression for notification
-        const damageOutputParts = damageResults.map(result => {
-            if (result === 'm') return 'm';
-            // Group and sum damage by type
-            const damageByType = {};
-            result.forEach(d => {
-                const type = d.damageType || 'untyped';
-                if (type in damageByType) {
-                    damageByType[type] += d.value;
-                } else {
-                    damageByType[type] = d.value;
-                }
-            });
-
-            // Convert to sorted array
-            const sortedDamage = Object.entries(damageByType)
-                .map(([type, value]) => ({ type, value }))
-                .sort((a, b) => b.value - a.value);
-
-            // Create damage strings
-            const damageStrings = sortedDamage.map(d => {
-                return d.type !== 'untyped' ? `${d.value}${d.type}` : `${d.value}`;
-            }).join(' + ');
-
-            // Determine if square brackets are needed
-            if (sortedDamage.length > 1) {
-                return `[${damageStrings}]`;
-            } else {
-                return damageStrings;
-            }
-        });
-        
-        // *** Updated Notification to Include Attack Rolls ***
-        // Format:
-        // "ATK 16, 4, 8, 20
-        // DMG [5+3fi] + m + [2+8fi] = 11fi + 7 = 18"
-
-        const atkValues = attackRolls.map(roll => {
-            // Remove HTML tags for the notification
-            return roll.replace(/<\/?[^>]+(>|$)/g, '');
-        });
-        const dmgOutput = damageOutputParts.join(' + ');
-
-        // For damage, replicate the main UI's formatted damage display without HTML
-        // Reuse the same logic to build the damage string
-
-        // Build DMG part
-        let dmgDisplay = '';
-
-        damageResults.forEach((result, index) => {
-            if (result === 'm') {
-                dmgDisplay += 'm';
-            } else {
-                // Group damage by type and sum them
-                const damageByType = {};
-                result.forEach(d => {
-                    const type = d.damageType || 'untyped';
-                    if (type in damageByType) {
-                        damageByType[type] += d.value;
-                    } else {
-                        damageByType[type] = d.value;
-                    }
-                });
-
-                // Convert to sorted array
-                const sortedDamage = Object.entries(damageByType)
-                    .map(([type, value]) => ({ type, value }))
-                    .sort((a, b) => b.value - a.value);
-
-                // Create damage strings
-                const damageStrings = sortedDamage.map(d => {
-                    return d.type !== 'untyped' ? `${d.value}${d.type}` : `${d.value}`;
-                }).join(' + ');
-
-                // Determine if square brackets are needed
-                if (sortedDamage.length > 1) {
-                    dmgDisplay += `[${damageStrings}]`;
-                } else {
-                    dmgDisplay += `${damageStrings}`;
-                }
-            }
-
-            if (index < damageResults.length - 1) {
-                dmgDisplay += ' + ';
-            }
-        });
-
-        // Calculate total damage per type across all attacks
-        const totalDamageByTypeForNotification = {};
-        damageResults.forEach(result => {
-            if (result === 'm') return;
-            result.forEach(d => {
-                const type = d.damageType || 'untyped';
-                if (type in totalDamageByTypeForNotification) {
-                    totalDamageByTypeForNotification[type] += d.value;
-                } else {
-                    totalDamageByTypeForNotification[type] = d.value;
-                }
-            });
-        });
-
-        // Convert to sorted array
-        const sortedTotalDamageForNotification = Object.entries(totalDamageByTypeForNotification)
-            .map(([type, value]) => ({ type, value }))
-            .sort((a, b) => b.value - a.value);
-
-        // Create total damage strings
-        const sortedTotalDamageStringsForNotification = sortedTotalDamageForNotification.map(d => {
-            return d.type !== 'untyped' ? `${d.value}${d.type}` : `${d.value}`;
-        }).join(' + ');
-
-        // Calculate overall total damage
-        const overallTotalDamageForNotification = sortedTotalDamageForNotification.reduce((acc, d) => acc + d.value, 0);
-
-        // Append the total damage
-        if (sortedTotalDamageForNotification.length > 1) {
-            dmgDisplay += ` = ${sortedTotalDamageStringsForNotification} = ${overallTotalDamageForNotification}`;
-        } else if (sortedTotalDamageForNotification.length === 1) {
-            const totalType = sortedTotalDamageForNotification[0].type !== 'untyped' ? sortedTotalDamageForNotification[0].type : '';
-            dmgDisplay += ` = ${overallTotalDamageForNotification}${totalType !== 'untyped' ? totalType : ''}`;
-        }
-
-        // Combine ATK and DMG with a newline
-        const notificationMessage = `ATK ${atkValues.join(', ')}\nDMG ${dmgDisplay}`;
-
-        OBR.notification.show(notificationMessage);
-
-        // Add to history
-        addToHistory(userInput, damageResults);
-    });
-
-    // Handle Enter key for submission
-    attackCommandInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            rollButton.click();
-        }
-    });
-
-    // Function to add a roll to history
-    function addToHistory(command, damageResults) {
-        // Limit history to 20 entries
-        if (history.length >= 20) {
-            history.pop(); // Remove the oldest entry
-            if (rollHistoryUl.lastChild) {
-                rollHistoryUl.removeChild(rollHistoryUl.lastChild);
-            }
-        }
-
-        history.unshift({ command, damageResults });
-
-        const li = document.createElement('li');
-        li.classList.add('history-item');
-        li.style.cursor = 'pointer'; // Indicate that it's clickable
-
-        // Set data attribute for the command
-        li.setAttribute('data-command', command);
-
-        // Create a container with flex to hold command and damage
-        const container = document.createElement('div');
-        container.classList.add('history-container');
-        container.style.display = 'flex';
-        container.style.justifyContent = 'space-between';
-        container.style.width = '100%';
-
-        const commandSpan = document.createElement('span');
-        commandSpan.classList.add('history-command');
-        commandSpan.textContent = command;
-
-        const damageSpan = document.createElement('span');
-        damageSpan.classList.add('history-damage');
-
-        // Populate damageSpan with color-coded damage numbers and types, grouped by attack
-        damageResults.forEach((result, index) => {
-            if (result === 'm') {
-                const span = document.createElement('span');
-                span.classList.add('damage-miss');
-                span.textContent = 'm';
-                damageSpan.appendChild(span);
-            } else {
-                // Group damage by type and sum them
-                const damageByType = {};
-                result.forEach(d => {
-                    const type = d.damageType || 'untyped';
-                    if (type in damageByType) {
-                        damageByType[type] += d.value;
-                    } else {
-                        damageByType[type] = d.value;
-                    }
-                });
-
-                // Convert to sorted array
-                const sortedDamage = Object.entries(damageByType)
-                    .map(([type, value]) => ({ type, value }))
-                    .sort((a, b) => b.value - a.value);
-
-                // Create damage strings
-                const damageStrings = sortedDamage.map(d => {
-                    const colorClass = getDamageColor(d.value);
-                    return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
-                }).join(' + ');
-
-                // Determine if square brackets are needed
-                if (sortedDamage.length > 1) {
-                    damageSpan.innerHTML += `[${damageStrings}]`;
-                } else {
-                    damageSpan.innerHTML += `${damageStrings}`;
-                }
-            }
-
-            if (index < damageResults.length - 1) {
-                const plus = document.createTextNode(' + ');
-                damageSpan.appendChild(plus);
-            }
-        });
-
-        // Calculate total damage per type across all attacks
-        const totalDamageByType = {};
-        damageResults.forEach(result => {
-            if (result === 'm') return;
-            result.forEach(d => {
-                const type = d.damageType || 'untyped';
-                if (type in totalDamageByType) {
-                    totalDamageByType[type] += d.value;
-                } else {
-                    totalDamageByType[type] = d.value;
-                }
-            });
-        });
-
-        // Convert totalDamageByType to array and sort by descending damage
-        const sortedTotalDamage = Object.entries(totalDamageByType)
-            .map(([type, value]) => ({ type, value }))
-            .sort((a, b) => b.value - a.value);
-
-        // Create total damage strings with color coding for both numbers and types
-        const sortedTotalDamageStrings = sortedTotalDamage.map(d => {
-            const colorClass = getDamageColor(d.value);
-            return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
-        }).join(' + ');
-
-        // Calculate overall total damage
-        const overallTotalDamage = sortedTotalDamage.reduce((acc, d) => acc + d.value, 0);
-
-        // Create the "= total" part with appropriate color
-        if (sortedTotalDamage.length > 1) {
-            damageSpan.innerHTML += ` = ${sortedTotalDamageStrings} = <span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}</span>`;
-        } else if (sortedTotalDamage.length === 1) {
-            // Include the damage type in the total
-            const totalType = sortedTotalDamage[0].type !== 'untyped' ? sortedTotalDamage[0].type : '';
-            damageSpan.innerHTML += ` = <span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}${totalType !== 'untyped' ? `<span class="damage-type">${totalType}</span>` : ''}</span>`;
-        }
-
-        container.appendChild(commandSpan);
-        container.appendChild(damageSpan);
-        li.appendChild(container);
-
-        // Prepend the new history entry
-        rollHistoryUl.prepend(li);
-    }
-
-    // Event delegation for history item clicks
-    rollHistoryUl.addEventListener('click', (e) => {
-        let target = e.target;
-
-        // Traverse up to the li element
-        while (target && target.nodeName !== 'LI') {
-            target = target.parentElement;
-        }
-
-        if (target && target.getAttribute('data-command')) {
-            const command = target.getAttribute('data-command');
-            attackCommandInput.value = command;
-            //rollButton.click();
-        }
-    });
 }
