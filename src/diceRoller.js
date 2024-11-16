@@ -252,6 +252,13 @@ function createDiceBox() {
 // diceRoller.js
 export function setupDiceRoller(userId) {
 
+    OBR.modal.open({
+        id: "rodeo.owlbear.example/modal",
+        url: "/modal",
+        height: 300,
+        width: 400,
+    });
+
     var diceBox = createDiceBox();
 
     const attackCommandInput = document.getElementById('attackCommand');
