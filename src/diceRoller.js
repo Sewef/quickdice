@@ -210,7 +210,7 @@ function createDiceBox() {
         diceCanvas.remove(); // Removes the element from the DOM
     }
 
-    var diceBox = new DiceBox(time_config(0.35 + parseInt(document.querySelector("#physicalSlider").value) / 100 * (1.65 - 0.35)));
+    var diceBox = new DiceBox(time_config(0.35 + parseInt(document.querySelector("#physicalSlider").value) / 100 * (2 - 0.35)));
 
     const canvas = document.getElementById('dice-canvas');
     canvas.style.pointerEvents = "none";
@@ -437,7 +437,7 @@ function getThemeAndColor(damageType) {
         'co': { theme: 'smooth', themeColor: '#00ffff' },// Cold
         'fi': { theme: 'smooth', themeColor: '#ff4500' },// Fire
         'fo': { theme: 'smooth', themeColor: '#8b4513' },// Force
-        'li': { theme: 'smooth', themeColor: '#ffff00' },// Lightning
+        'li': { theme: 'rust', themeColor: '#ffff00' },// Lightning
         'ne': { theme: 'smooth', themeColor: '#2f3f43' }, // Necrotic
         'po': { theme: 'smooth', themeColor: '#008000' },// Poison
         'ps': { theme: 'smooth', themeColor: '#ee82ee' },// Psychic
@@ -454,7 +454,9 @@ function getThemeAndColor(damageType) {
 
 // Updated executeDiceRolls function
 async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
+
     if (!physicalDiceRoll) {
+        // Handle non-physical dice rolls (e.g., simulated rolls)
         diceList.forEach(attackDice => {
             attackDice.dice.forEach(dice => {
                 const diceType = parseInt(dice.type.substring(1)); // Remove 'd' from 'd20', etc.
@@ -464,47 +466,74 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
             });
         });
     } else {
-        const diceArray = [];
-        const diceMapping = [];
+        const diceArray = [];    // Array to send to diceBox.roll
+        const diceMapping = [];  // Mapping to associate groupId to diceObj
 
-        diceList.forEach(diceGroup => {
-            diceGroup.dice.forEach(dice => {
+        // Initialize groupId counter
+        let groupIdCounter = 0;
+
+        // Prepare diceArray and diceMapping
+        diceList.forEach((attackDice) => {
+            attackDice.dice.forEach((dice) => {
                 const diceType = parseInt(dice.type.substring(1)); // e.g., 'd6' -> 6
                 const count = dice.count;
 
-                // Prepare the base dice object
+                // Construct the dice object as per documentation
                 const diceObj = {
-                    modifier: 0, // Assuming no modifier here; adjust if necessary
+                    modifier: 0,    // Assuming no modifier; adjust if necessary
                     qty: count,
                     sides: diceType,
                 };
 
-                // Get theme and color based on damageType, if it exists
+                // Assign theme and themeColor if damageType is specified
                 if (dice.damageType) {
                     const { theme, themeColor } = getThemeAndColor(dice.damageType);
                     diceObj.theme = theme;
                     diceObj.themeColor = themeColor;
                 }
 
+                // Add the dice object to the array
                 diceArray.push(diceObj);
-                diceMapping.push({ diceObj: dice });
+
+                // Store mapping with groupId corresponding to the current diceObj's index in diceArray
+                diceMapping.push({ groupId: groupIdCounter, diceObj: dice });
+
+                // Increment groupIdCounter for the next group
+                groupIdCounter++;
             });
         });
 
-        // Await the dice roll
-        const results = await diceBox.roll(diceArray);
+        try {
+            // Perform the dice roll using diceBox.roll
+            const results = await diceBox.roll(diceArray);
 
-        // Map results back to diceRolls
-        diceMapping.forEach((mapping, index) => {
-            const { diceObj } = mapping;
-            const result = results[index];
+            // Initialize an object to hold totals per groupId
+            const groupTotals = {};
 
-            // Assign total value from the result
-            diceObj.total = result.value;
-        });
+            // Sum the values of die results per groupId
+            results.forEach((dieResult) => {
+                const { groupId, value } = dieResult;
+                if (!groupTotals[groupId]) {
+                    groupTotals[groupId] = 0;
+                }
+                groupTotals[groupId] += value;
+            });
+
+            // Assign the summed total to each corresponding diceObj
+            diceMapping.forEach((mapping) => {
+                const { groupId, diceObj } = mapping;
+                const total = groupTotals[groupId] || 0;
+                diceObj.total = total;
+            });
+        } catch (error) {
+            console.error("Error during dice roll:", error);
+            // Optionally, handle the error (e.g., retry, assign default values, etc.)
+        }
     }
     return diceList;
 }
+
+
 
 
 
@@ -515,7 +544,6 @@ async function performAttack(attackParams, diceBox, isPhysical) {
     let totalDamage = 0;
 
     let diceRolls = { attackDice: [], damageDice: [] };
-    let physicalDiceRoll = false; // Assuming physicalDiceRoll is false for now
 
     // Initialize hpResult if hp is provided
     if (attackParams.hp !== null && attackParams.hp !== undefined) {
@@ -703,6 +731,7 @@ async function performAttack(attackParams, diceBox, isPhysical) {
     if (diceRolls.damageDice.length > 0) {
         diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox);
     }
+    console.log(diceRolls.damageDice);
 
     // Process damage results
     diceRolls.damageDice.forEach(damageDice => {
