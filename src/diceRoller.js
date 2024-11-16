@@ -530,6 +530,7 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
             // Optionally, handle the error (e.g., retry, assign default values, etc.)
         }
     }
+    console.log(diceList);
     return diceList;
 }
 
@@ -538,6 +539,7 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
 
 
 async function performAttack(attackParams, diceBox, isPhysical) {
+    console.log("performAttack");
     let attackRolls = [];
     let damageResults = [];
     let hpResult = null;
@@ -726,12 +728,10 @@ async function performAttack(attackParams, diceBox, isPhysical) {
             }
         }
     }
-
     // Roll all the dice for damage if physicalDiceRoll is false
-    if (diceRolls.damageDice.length > 0) {
+    if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0)) {
         diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox);
     }
-    console.log(diceRolls.damageDice);
 
     // Process damage results
     diceRolls.damageDice.forEach(damageDice => {
@@ -816,7 +816,7 @@ async function performAttack(attackParams, diceBox, isPhysical) {
     if (automaticHit || attackRolls.length === 0) {
         attackRolls = null;
     }
-
+    console.log("damageResults", damageResults);
     return { attackRolls, damageResults, hpResult };
 }
 
