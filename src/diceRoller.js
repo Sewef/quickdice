@@ -212,9 +212,10 @@ export function setupDiceRoller(userId) {
     // Initialize the DiceBox instance
     diceBox.init().then(() => {
         document.getElementById('dice-canvas').style.pointerEvents = "none";
-        document.getElementById('container').onClick = () => {
-            if (isRolling) {
-                DiceBox.clear()
+        document.getElementById('container').onclick = () => {
+
+            if (!isRolling) {
+                diceBox.clear()
             }
         };
         console.log('DiceBox initialized');
@@ -224,7 +225,7 @@ export function setupDiceRoller(userId) {
             isRolling = false
             //setTimeout(() => diceBox.clear(), 1000);
         };
-        diceBox.onRollComplete = (result) => {
+        diceBox.onBeforeRoll = (result) => {
             isRolling = true
             //setTimeout(() => diceBox.clear(), 1000);
         };

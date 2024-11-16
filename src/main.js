@@ -27,9 +27,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
       <div class="history" id="history"></div>
     </div>
   `;
-  console.log("ready?");
   OBR.onReady(() => OBR.player.getId().then((userId) => {
-    console.log("now!");
     setupDiceRoller(userId);
   }));
 });
