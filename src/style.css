@@ -18,7 +18,12 @@ body {
   background-color: var(--background-color);
   color: var(--text-color);
   margin: 0;
-  padding-top: 10px; /* *** Reduced from 10px to 5px *** */
+  height: 98%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-content: stretch;
+  align-items: stretch;
 }
 
 .container {
@@ -26,16 +31,44 @@ body {
   padding: 10px; /* *** Reduced from 15px to 10px *** */
   border-radius: var(--border-radius);
   max-width: 420px; /* *** Changed from 600px to 420px (70%) *** */
-  width: 70%; /* *** Ensures the container takes up 70% of the parent width *** */
-  margin: auto;
+  width: 90%; /* *** Ensures the container takes up 70% of the parent width *** */
+  margin: 10px;
   box-shadow: 0 0 10px rgba(0, 0, 0, 0.7);
+  height: 98%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+html {
+  height: 100%;
+}
+
+#app {
+  height: 100%;
+}
+
+#dice-box {
+  position: fixed; /* Keeps it in a consistent location */
+  left: 10px;
+  bottom: 10px; /* Adjust as needed */
+  right: 10px; /* Adjust as needed */
+  width: 300px; /* Set a reasonable size */
+  height: 400px; /* Adjust height */
+  pointer-events: none; /* Makes it click-throughable */
+  opacity: 0.8; /* Slight transparency */
+  border: 1px solid rgba(255, 255, 255, 0.3); /* Subtle border */
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5); /* Shadow for depth */
+  background-color: rgba(0, 0, 0, 0.2); /* Transparent background */
+  border-radius: 5px; /* Rounded corners */
+  z-index: 1000; /* Ensures it is above other elements */
 }
 
 .card {
   background-color: rgb(65, 88, 111);
   border-radius: 5px;
   padding: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
   transition: transform 0.05s ease, box-shadow 0.05s ease, background-color 0.05s ease;
   cursor: pointer; /* Cursor changes to pointer on hover */
@@ -62,10 +95,11 @@ body {
 .code-font {
   font-family: 'Courier New', Courier, monospace;
 }
+
 .attack-rolls,
 .damage-results {
   margin-bottom: 6px; /* *** Reduced from 8px to 6px *** */
-  font-size: 1.1em; /* *** Reduced from 1.1em to 1em *** */
+  font-size: 1em; /* *** Reduced from 1.1em to 1em *** */
 }
 
 .attack-rolls .hit {
@@ -112,29 +146,26 @@ body {
 .controls {
   display: flex;
   align-items: center;
-  gap: 3px; /* *** Reduced from 5px to 3px *** */
-  margin-bottom: 10px; /* *** Reduced from 15px to 10px *** */
+  gap: 10px;
+  width: 100%;
+  max-width: 800px;
+  padding: 10px;
+  box-sizing: border-box;
 }
 
 .controls input[type="text"] {
-  flex: 1;
-  padding: 6px 8px; /* *** Reduced horizontal padding *** */
-  border: none;
-  border-radius: 3px 0 0 3px; /* *** Adjusted for reduced border radius *** */
-  font-size: 0.9em; /* *** Reduced from 0.95em to 0.9em *** */
-  background-color: var(--input-bg);
-  color: var(--text-color);
-}
-
-.controls input[type="text"]::placeholder {
-  color: #bdc3c7;
+  flex: 1; /* Allows the input to grow and fill available space */
+  padding: 8px;
+  font-size: 16px;
+  border: 1px solid #bdc3c7;
+  border-radius: 4px;
 }
 
 .controls button {
-  width: 30px; /* *** Reduced from 35px to 30px *** */
+  flex-grow: 1; /* Allows the button to grow */
   height: 30px; /* *** Reduced from 35px to 30px *** */
   border: none;
-  border-radius: 0 3px 3px 0; /* *** Adjusted for reduced border radius *** */
+  border-radius: 3px; /* *** Adjusted for reduced border radius *** */
   background-color: var(--button-bg);
   color: var(--text-color);
   cursor: pointer;
@@ -143,10 +174,17 @@ body {
   justify-content: center;
   transition: background-color 0.3s ease;
   padding: 0; /* *** Removed padding to tighten the button *** */
+  margin-right: auto; /* Pushes the options to the right */
 }
 
 .controls button:hover {
   background-color: var(--button-hover-bg);
+}
+
+.options {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .history {
@@ -154,8 +192,27 @@ body {
   padding-left: 6px;
   padding-right: 6px;
   padding-top: 6px;
-  padding-bottom: 2px;
   border-radius: var(--border-radius);
+  overflow-y: auto; /* Vertical scrollbar */
+  overflow-x: hidden;
+  scrollbar-width: thin; /* Makes the scrollbar thinner */
+  scrollbar-color: var(--button-bg) var(--background-color); /* Thumb color and track color */
+}
+
+/* WebKit browsers (Chrome, Edge, Safari) */
+.history::-webkit-scrollbar {
+  width: 8px; /* Width of the scrollbar */
+}
+
+.history::-webkit-scrollbar-track {
+  background: var(--background-color); /* Background color of the scrollbar track */
+  border-radius: var(--border-radius);
+}
+
+.history::-webkit-scrollbar-thumb {
+  background: var(--button-bg); /* Thumb color */
+  border-radius: var(--border-radius); /* Smooth, rounded edges */
+  border: 2px solid var(--background-color); /* Padding effect */
 }
 
 .history h2 {
@@ -169,7 +226,7 @@ body {
   list-style-type: none;
   padding: 0;
   margin: 0;
-  max-height: 250px; /* *** Increased from 180px to 225px (125%) *** */
+  max-height: 250px; /* *** Increased from 180px to 250px *** */
   overflow-y: auto;
   overflow-x: hidden; /* *** Prevent horizontal scrolling *** */
 }
@@ -223,11 +280,16 @@ body {
     width: 100%;
     border-radius: 3px; /* *** Adjusted for reduced border radius *** */
     height: 30px; /* *** Keep height consistent *** */
+    margin-right: 0; /* Remove margin when stacked */
   }
 
   .controls input[type="text"] {
     border-radius: 3px; /* *** Adjusted for reduced border radius *** */
     margin-bottom: 3px; /* *** Reduced from 5px to 3px *** */
+  }
+
+  .options {
+    justify-content: flex-start;
   }
 
   .history-container {
@@ -244,14 +306,15 @@ body {
   .container {
     max-width: 90%; /* *** Increase container width on smaller screens *** */
     width: 90%;
-    padding: 8px; /* *** Reduced from 10px to 8px *** */
+    height: 95%;
   }
 
   .history ul {
-    max-height: 200px; /* *** Increased from 150px to 187px (125%) *** */
+    max-height: 200px; /* *** Increased from 180px to 200px *** */
   }
 }
 
+/* *** Additional Styles for Consistency *** */
 /* *** Additional Styles for Consistency *** */
 
 /* Damage Colors */
@@ -295,4 +358,37 @@ body {
 /* Damage Type Styling */
 .damage-type {
   color: #1b0f55; /* Black font for damage types */
+}
+
+/* Style for checkboxes */
+.options label {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.9em; /* Adjust font size to match design */
+  color: var(--text-color); /* Match text color */
+  margin-right: 10px; /* Space between options */
+  cursor: pointer;
+}
+
+.options input[type="checkbox"] {
+  appearance: none; /* Remove default checkbox styling */
+  width: 16px; /* Size of the custom checkbox */
+  height: 16px;
+  margin-right: 6px; /* Space between checkbox and label */
+  border: 2px solid var(--text-color); /* Border to match design */
+  border-radius: var(--border-radius); /* Rounded corners */
+  background-color: var(--input-bg); /* Match input background color */
+  cursor: pointer;
+  display: inline-block;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.options input[type="checkbox"]:checked {
+  background-color: var(--button-hover-bg); /* Checkbox checked color */
+  border-color: var(--button-hover-bg); /* Match hover background color */
+}
+
+.options input[type="checkbox"]:focus {
+  outline: none;
+  box-shadow: 0 0 4px var(--button-hover-bg); /* Subtle focus shadow */
 }
