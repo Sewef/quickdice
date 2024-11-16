@@ -159,6 +159,8 @@ html {
   font-size: 16px;
   border: 1px solid #bdc3c7;
   border-radius: 4px;
+  background-color: var(--input-bg);
+  color: var(--text-color);
 }
 
 .controls button {
@@ -391,4 +393,135 @@ html {
 .options input[type="checkbox"]:focus {
   outline: none;
   box-shadow: 0 0 4px var(--button-hover-bg); /* Subtle focus shadow */
+}
+
+
+/* Additional styles for the sliders */
+.options label {
+  display: flex;
+  align-items: center;
+  font-size: 0.9em; /* Adjust font size to match design */
+  color: var(--text-color); /* Match text color */
+  margin-right: 10px; /* Space between options */
+  cursor: pointer;
+  gap: 10px; /* Space between text and slider */
+}
+
+.options input[type="range"] {
+  -webkit-appearance: none; /* Remove default styles */
+  width: 100px; /* Set width for the slider */
+  height: 6px; /* Height of the slider */
+  background: var(--button-bg); /* Match background color */
+  border-radius: 10px; /* Rounded edges for the slider */
+  outline: none;
+  cursor: pointer;
+  transition: background 0.3s ease;
+}
+
+.options input[type="range"]:focus {
+  box-shadow: 0 0 4px var(--button-hover-bg); /* Focus effect */
+}
+
+.options input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px;
+  border-radius: 10px;
+}
+
+.options input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px; /* Thumb width */
+  height: 18px; /* Thumb height */
+  border-radius: 50%;
+  background: var(--button-hover-bg); /* Thumb color */
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.options input[type="range"]:active::-webkit-slider-thumb {
+  background: var(--button-bg); /* Thumb color when active */
+}
+
+.options input[type="range"]::-moz-range-track {
+  height: 6px;
+  border-radius: 10px;
+}
+
+.options input[type="range"]::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--button-hover-bg); /* Thumb color */
+  border: none;
+  transition: background 0.3s ease;
+}
+
+.options input[type="range"] {
+  -webkit-appearance: none; /* Remove default styling */
+  width: 100px; /* Set width for the slider */
+  height: 6px; /* Track height */
+  background: var(--button-bg); /* Track background color */
+  border-radius: 10px; /* Rounded edges for the track */
+  outline: none; /* Remove outline */
+  cursor: pointer; /* Pointer cursor on hover */
+  transition: background 0.3s ease;
+}
+
+/* WebKit browsers (Chrome, Edge, Safari) */
+.options input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; /* Remove default styling */
+  width: 18px; /* Thumb width */
+  height: 18px; /* Thumb height */
+  border-radius: 50%; /* Make it circular */
+  background: var(--button-hover-bg); /* Thumb color */
+  border: none; /* Remove border */
+  transition: background 0.3s ease; /* Smooth transition */
+  
+  /* Center the thumb vertically */
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  /* Optional: Add a box-shadow for better visibility */
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.options input[type="range"]::-webkit-slider-runnable-track {
+  height: 6px; /* Track height */
+  border-radius: 10px; /* Rounded edges */
+  background: var(--button-bg); /* Track color */
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3); /* Inner shadow */
+}
+
+/* Firefox */
+.options input[type="range"]::-moz-range-thumb {
+  width: 18px; /* Thumb width */
+  height: 18px; /* Thumb height */
+  border-radius: 50%; /* Make it circular */
+  background: var(--button-hover-bg); /* Thumb color */
+  border: none; /* Remove border */
+  transition: background 0.3s ease; /* Smooth transition */
+  
+  /* Center the thumb vertically */
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+  
+  /* Optional: Add a box-shadow for better visibility */
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
+}
+
+.options input[type="range"]::-moz-range-track {
+  height: 6px; /* Track height */
+  border-radius: 10px; /* Rounded edges */
+  background: var(--button-bg); /* Track color */
+  box-shadow: inset 0 0 5px rgba(0, 0, 0, 0.3); /* Inner shadow */
+}
+
+/* Optional: Focus Styles for Accessibility */
+.options input[type="range"]:focus::-webkit-slider-thumb {
+  box-shadow: 0 0 4px var(--button-hover-bg);
+}
+
+.options input[type="range"]:focus::-moz-range-thumb {
+  box-shadow: 0 0 4px var(--button-hover-bg);
 }

@@ -7,6 +7,8 @@ let cachedUserId = null;
 
 let isRolling = false;
 
+let speed = 1;
+
 function rollDice(number, diceType) {
     if (!Number.isInteger(number) || number < 1) {
         console.error(`Invalid number of dice: ${number}`);
@@ -161,13 +163,8 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
 }
 
 
-
-// diceRoller.js
-export function setupDiceRoller(userId) {
-    const diceBox = new DiceBox({
-        assetPath: '/assets/dice-box/', // Path to the static assets
-        container: '#container',    // DOM element to place the canvas
-        id: 'dice-canvas',               // ID of the canvas element
+function time_config(t) {
+    const originalConfig = {
         gravity: 1.6,
         mass: 1,
         friction: 0.5,
@@ -181,13 +178,43 @@ export function setupDiceRoller(userId) {
         delay: 10,
         scale: 7,
         theme: 'smooth',
-        themeColor: '#ffffff',
+        themeColor: '#eeeeee',
         preloadThemes: ['gemstone', 'dice-of-rolling', 'smooth', 'rock', 'rust', 'blue-green-metal']
-    });
-      
-    const canvas = document.getElementById('dice-canvas');
+    };
 
-    // Adjusting CSS to fill the entire dice-box
+    return {
+        assetPath: '/assets/dice-box/',
+        container: '#container',
+        id: 'dice-canvas',
+        gravity: originalConfig.gravity / (t * t),
+        mass: originalConfig.mass,
+        friction: originalConfig.friction,
+        restitution: originalConfig.restitution,
+        angularDamping: originalConfig.angularDamping / t,
+        linearDamping: originalConfig.linearDamping / t,
+        spinForce: originalConfig.spinForce / t,
+        throwForce: originalConfig.throwForce / t,
+        startingHeight: originalConfig.startingHeight,
+        settleTimeout: originalConfig.settleTimeout * t,
+        delay: originalConfig.delay * t,
+        scale: originalConfig.scale,
+        theme: originalConfig.theme,
+        themeColor: originalConfig.themeColor,
+        preloadThemes: originalConfig.preloadThemes
+    };
+}
+
+function createDiceBox() {
+    const diceCanvas = document.getElementById("dice-canvas");
+    console.log(diceCanvas);
+    if (diceCanvas) {
+        diceCanvas.remove(); // Removes the element from the DOM
+    }
+
+    var diceBox = new DiceBox(time_config(0.35 + parseInt(document.querySelector("#physicalSlider").value) / 100 * (1.65 - 0.35)));
+
+    const canvas = document.getElementById('dice-canvas');
+    canvas.style.pointerEvents = "none";
     canvas.style.position = 'absolute';
     canvas.style.top = '0'; // Align to the top
     canvas.style.left = '0'; // Align to the left
@@ -195,46 +222,37 @@ export function setupDiceRoller(userId) {
     canvas.style.height = '100%'; // Full height
     canvas.style.zIndex = '10'; // Keep it above other elements
 
-    // Synchronizing logical and visual dimensions
-    const resizeCanvas = () => {
-        const rect = canvas.getBoundingClientRect(); // Get the actual size of the canvas element
-        canvas.width = rect.width; // Set the semantic width to match the visual width
-        canvas.height = rect.height; // Set the semantic height to match the visual height
-    };
-
-    // Call resizeCanvas initially to set proportions
+    function resizeCanvas() {
+        const rect = canvas.getBoundingClientRect();
+        canvas.width = rect.width;
+        canvas.height = rect.height;
+    }
     resizeCanvas();
-
-    // Optional: Adjust canvas dimensions on window resize
     window.addEventListener('resize', resizeCanvas);
-
-
-    // Initialize the DiceBox instance
+    
     diceBox.init().then(() => {
-        document.getElementById('dice-canvas').style.pointerEvents = "none";
-        document.getElementById('container').onclick = () => {
 
+        document.getElementById('container').onclick = () => {
             if (!isRolling) {
                 diceBox.clear()
             }
         };
         console.log('DiceBox initialized');
-    
-        // Set up event listeners for dice roll events
-        diceBox.onRollComplete = (result) => {
+            diceBox.onRollComplete = (result) => {
             isRolling = false
-            //setTimeout(() => diceBox.clear(), 1000);
         };
         diceBox.onBeforeRoll = (result) => {
             isRolling = true
-            //setTimeout(() => diceBox.clear(), 1000);
         };
-
-    
-        // Add event listener to the roll button
-        const rollButton = document.getElementById('rollButton');
-    
     });
+
+    return diceBox
+}
+
+// diceRoller.js
+export function setupDiceRoller(userId) {
+
+    var diceBox = createDiceBox();
 
     const attackCommandInput = document.getElementById('attackCommand');
 
@@ -278,13 +296,12 @@ export function setupDiceRoller(userId) {
         // You can now use these booleans as needed
 
         const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox, isPhysical);
+        const historyEntry = createHistoryEntry(userInput, attackRolls, damageResults, hpResult);
+        historyContainer.prepend(historyEntry);
+        if (historyContainer.children.length >= 20) {
+            historyContainer.removeChild(historyContainer.lastChild); // Remove the oldest entry
+        }
         if (!isHidden) {
-            const historyEntry = createHistoryEntry(userInput, attackRolls, damageResults, hpResult);
-            historyContainer.prepend(historyEntry);
-            if (historyContainer.children.length >= 20) {
-                historyContainer.removeChild(historyContainer.lastChild); // Remove the oldest entry
-            }
-    
             OBR.broadcast.sendMessage("rodeo.owlbear.diceResults", {
                 'command': userInput, 
                 'attackRolls': attackRolls, 
@@ -314,8 +331,60 @@ export function setupDiceRoller(userId) {
             rollButton.click();
         }
     });
-}
 
+    document.addEventListener('keydown', (event) => {
+        // For both Windows/Linux (Ctrl) and macOS (Cmd), trigger on Ctrl + H or Cmd + H
+        if ((event.ctrlKey || event.metaKey) && event.key === 'h') {
+            event.preventDefault(); // Prevent the default action
+            const hiddenRollCheckbox = document.getElementById('hiddenRoll');
+            hiddenRollCheckbox.checked = !hiddenRollCheckbox.checked; // Toggle checkbox
+        }
+      
+        // For both Windows/Linux (Ctrl) and macOS (Cmd), trigger on Ctrl + P or Cmd + P
+        if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
+            event.preventDefault(); // Prevent the default action
+            const physicalRollCheckbox = document.getElementById('physicalRoll');
+            physicalRollCheckbox.checked = !physicalRollCheckbox.checked; // Toggle checkbox
+        }
+
+        if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
+            event.preventDefault(); // Prevent the default action
+            if (!isRolling) {
+                diceBox.clear();
+            }
+        }
+
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Prevent default action (form submission, etc.)
+            const rollButton = document.getElementById('rollButton');
+            if (rollButton) {
+                rollButton.click(); // Trigger roll button click
+            }
+        }
+    });
+
+    const physicalSlider = document.querySelector("#physicalSlider");
+    physicalSlider.addEventListener("mouseup", () => {
+        if (!isRolling) {
+            diceBox = createDiceBox();
+        }
+        else {
+            diceBox.onRollComplete = () => {
+                diceBox = createDiceBox();
+            };
+        }
+    });
+    physicalSlider.addEventListener("touchend", () => {
+        if (!isRolling) {
+            diceBox = createDiceBox();
+        }
+        else {
+            diceBox.onRollComplete = () => {
+                diceBox = createDiceBox();
+            };
+        }
+    });
+}
 
 // *** Revised Function: Parse the damage expression into individual damage instances ***
 function parseDamageExpression(damageExpr) {

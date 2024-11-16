@@ -22,6 +22,10 @@ document.addEventListener("DOMContentLoaded", (event) => {
             <input type="checkbox" id="physicalRoll" />
             Physical
           </label>
+          <label>
+          <label>
+            <input type="range" id="physicalSlider" min="0" max="100" value="50" />
+          </label>
         </div>
       </div>
       <div class="history" id="history"></div>
