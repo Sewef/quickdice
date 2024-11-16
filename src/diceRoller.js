@@ -5,6 +5,8 @@ import DiceBox from "@3d-dice/dice-box";
 
 let cachedUserId = null;
 
+let isRolling = false;
+
 function rollDice(number, diceType) {
     if (!Number.isInteger(number) || number < 1) {
         console.error(`Invalid number of dice: ${number}`);
@@ -44,7 +46,6 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
     }
 
     // 2. Attack Rolls
-    console.log(attackRolls)
     if (attackRolls !== null) {
         // Create attack roll display
         const attackDiv = document.createElement('div');
@@ -210,27 +211,29 @@ export function setupDiceRoller(userId) {
 
     // Initialize the DiceBox instance
     diceBox.init().then(() => {
-        console.log("initializign")
         document.getElementById('dice-canvas').style.pointerEvents = "none";
-
+        document.getElementById('container').onClick = () => {
+            if (isRolling) {
+                DiceBox.clear()
+            }
+        };
         console.log('DiceBox initialized');
     
         // Set up event listeners for dice roll events
         diceBox.onRollComplete = (result) => {
-            displayResult(result);
-            setTimeout(() => diceBox.clear(), 1000);
+            isRolling = false
+            //setTimeout(() => diceBox.clear(), 1000);
         };
+        diceBox.onRollComplete = (result) => {
+            isRolling = true
+            //setTimeout(() => diceBox.clear(), 1000);
+        };
+
     
         // Add event listener to the roll button
         const rollButton = document.getElementById('rollButton');
     
     });
-    
-    // Function to display the roll result
-    function displayResult(result) {
-        console.log("RESULT", result);
-    }
-
 
     const attackCommandInput = document.getElementById('attackCommand');
 
@@ -272,7 +275,6 @@ export function setupDiceRoller(userId) {
         const isPhysical = physicalCheckbox.checked;
 
         // You can now use these booleans as needed
-        console.log(`Hidden Roll: ${isHidden}, Physical Roll: ${isPhysical}`);
 
         const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox, isPhysical);
         if (!isHidden) {
@@ -421,7 +423,6 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
             });
         });
 
-        console.log("INPUT", diceArray);
         // Await the dice roll
         const results = await diceBox.roll(diceArray);
 
@@ -517,7 +518,6 @@ async function performAttack(attackParams, diceBox, isPhysical) {
 
     // Roll all the dice for attacks if physicalDiceRoll is false
     if (!automaticHit && diceRolls.attackDice.length > 0) {
-        console.log("diceRolls:", diceRolls);
         diceRolls.attackDice = await executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox);
     }
 
@@ -633,7 +633,6 @@ async function performAttack(attackParams, diceBox, isPhysical) {
 
     // Roll all the dice for damage if physicalDiceRoll is false
     if (diceRolls.damageDice.length > 0) {
-        console.log("damage dice", diceRolls.damageDice);
         diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox);
     }
 
@@ -1168,21 +1167,6 @@ function parseInput(userInput) {
         return null;
     }
 
-    // Return the parsed components
-    console.log({
-        num_attacks,
-        modifier,
-        attack_bonus,
-        attack_color, // Include attack_color in the output
-        base_target_ac,
-        ac_modifier,
-        target_ac,
-        damage_components,
-        hp,
-        res,
-        vul,
-        imm,
-    });
     return {
         num_attacks,
         modifier,
