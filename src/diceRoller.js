@@ -149,16 +149,16 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
     // Append entry to the card container
     card.appendChild(entry);
 
-    // Onclick handler
-    card.onclick = function() {
+    function handleCardInteraction() {
         if (command !== null) {
             const inputField = document.getElementById('attackCommand');
             if (inputField) {
                 inputField.value = command;
             }
         }
-    };
-
+    }
+    card.addEventListener('click', handleCardInteraction);
+    card.addEventListener('touchend', handleCardInteraction);
     return card;
 }
 
