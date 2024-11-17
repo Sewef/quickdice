@@ -140,7 +140,11 @@ html {
 
 /* Damage Type Styling */
 .damage-type {
-  color: #1b0f55; /* Black font for damage types */
+  color: #120a3d; /* Black font for damage types */
+  filter: saturate(80%);
+  font-size: 0.8em;
+  text-align: center;
+  vertical-align: middle;
 }
 
 .controls {
@@ -161,6 +165,23 @@ html {
   border-radius: 4px;
   background-color: var(--input-bg);
   color: var(--text-color);
+  transition: border-color 0.3s, background-color 0.3s; /* Smooth transitions */
+}
+
+/* Error state for the input */
+.controls input[type="text"].input-error {
+  background-color: #4d0202; /* Light red background for better visibility */
+  animation: shake 0.2s; /* Apply shake animation */
+}
+
+/* Shake animation keyframes */
+@keyframes shake {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-4px); }
+  40% { transform: translateX(4px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+  100% { transform: translateX(0); }
 }
 
 .controls button {
@@ -186,10 +207,10 @@ html {
 .options {
   display: flex;
   align-items: center;
-  gap: 10px;
 }
 
 .history {
+  display: block;
   background-color: var(--roll-history-bg);
   padding-left: 6px;
   padding-right: 6px;
@@ -329,7 +350,7 @@ html {
 }
 
 .damage-red {
-  color: #e23541; /* Blood red */
+  color: #ff4955; /* Blood red */
 }
 
 .damage-purple {
@@ -357,18 +378,13 @@ html {
   color: #FFD700; /* Gold for critical hits */
 }
 
-/* Damage Type Styling */
-.damage-type {
-  color: #1b0f55; /* Black font for damage types */
-}
-
 /* Style for checkboxes */
 .options label {
   display: inline-flex;
   align-items: center;
   font-size: 0.9em; /* Adjust font size to match design */
   color: var(--text-color); /* Match text color */
-  margin-right: 10px; /* Space between options */
+  margin-right: 3px; /* Space between options */
   cursor: pointer;
 }
 
@@ -376,7 +392,6 @@ html {
   appearance: none; /* Remove default checkbox styling */
   width: 16px; /* Size of the custom checkbox */
   height: 16px;
-  margin-right: 6px; /* Space between checkbox and label */
   border: 2px solid var(--text-color); /* Border to match design */
   border-radius: var(--border-radius); /* Rounded corners */
   background-color: var(--input-bg); /* Match input background color */
@@ -404,7 +419,7 @@ html {
   color: var(--text-color); /* Match text color */
   margin-right: 10px; /* Space between options */
   cursor: pointer;
-  gap: 10px; /* Space between text and slider */
+  gap: 3px; /* Space between text and slider */
 }
 
 .options input[type="range"] {

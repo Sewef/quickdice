@@ -42,7 +42,7 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
     if (command !== null) {
         // Create the command display
         const commandDiv = document.createElement('div');
-        commandDiv.innerText = command;
+        commandDiv.innerText = textToEmoji(command);
         commandDiv.classList.add('code-font'); // Apply code font to command display
         entry.appendChild(commandDiv);
     }
@@ -81,7 +81,7 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
             // Create damage strings
             const damageStrings = sortedDamage.map(d => {
                 const colorClass = getDamageColor(d.value);
-                return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
+                return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${textToEmoji(d.type)}</span>` : ''}</span>`;
             }).join(' + ');
 
             // Determine if square brackets are needed
@@ -106,7 +106,7 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
         // Create total damage strings with color coding for both numbers and types
         const sortedTotalDamageStrings = sortedTotalDamage.map(d => {
             const colorClass = getDamageColor(d.value);
-            return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${d.type}</span>` : ''}</span>`;
+            return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${textToEmoji(d.type)}</span>` : ''}</span>`;
         }).join(' + ');
 
         // Calculate overall total damage
@@ -124,8 +124,8 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
             damageDiv.innerHTML = formattedDamageDisplay;
         } else if (sortedTotalDamage.length === 1) {
             // Only one damage type, include the type in the overall total
-            const totalType = sortedTotalDamage[0].type !== 'untyped' ? sortedTotalDamage[0].type : '';
-            const formattedTotalDamage = `<span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}${totalType !== 'untyped' ? `<span class="damage-type">${totalType}</span>` : ''}</span>`;
+            const totalType = sortedTotalDamage[0].type !== 'untyped' ? textToEmoji(sortedTotalDamage[0].type) : '';
+            const formattedTotalDamage = `<span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}${totalType !== 'untyped' ? `<span class="damage-type">${textToEmoji(totalType)}</span>` : ''}</span>`;
             // Display the damage expressions and total
             damageDiv.innerHTML = `${damageExpressionParts.join(' + ')} = ${formattedTotalDamage}`;
         } else {
@@ -254,7 +254,6 @@ function createDiceBox() {
 // diceRoller.js
 export function setupDiceRoller(userId) {
 
-    console.log("settingDiceRoller")
     var diceBox = createDiceBox();
 
     const attackCommandInput = document.getElementById('attackCommand');
@@ -276,7 +275,7 @@ export function setupDiceRoller(userId) {
         .replace('{bonus}', randomBonus)
         .replace('{count}', randomCount);
 
-    attackCommandInput.value = randomExample;
+    attackCommandInput.value = textToEmoji(randomExample);
     const historyContainer = document.getElementById('history');
     const rollButton = document.getElementById('rollButton');
 
@@ -286,10 +285,14 @@ export function setupDiceRoller(userId) {
 
     rollButton.addEventListener('click', async () => {
 
-        const userInput = attackCommandInput.value.trim();
+        const userInput = emojiToText(attackCommandInput.value).trim();
         const attackParams = parseInput(userInput);
         if (!attackParams) {
-            alert('Invalid input format. Please try again.');
+            attackCommandInput.classList.add('input-error');
+            setTimeout(() => {
+                attackCommandInput.classList.remove('input-error');
+            }, 500);
+
             return;
         }
         
@@ -351,6 +354,13 @@ export function setupDiceRoller(userId) {
             physicalRollCheckbox.checked = !physicalRollCheckbox.checked; // Toggle checkbox
         }
 
+        if ((event.ctrlKey || event.metaKey) && event.key === 'i') {
+            event.preventDefault(); // Prevent the default action
+            const infoCheckbox = document.getElementById('info');
+            infoCheckbox.checked = !infoCheckbox.checked; // Toggle checkbox
+            infoCheckbox.dispatchEvent(new Event('change'));
+        }
+
         if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             event.preventDefault(); // Prevent the default action
             if (!isRolling) {
@@ -395,7 +405,15 @@ export function setupDiceRoller(userId) {
             };
         }
     });
+
+    attackCommandInput.addEventListener('input', function() {
+
+        const { text, cursorPos } = textToEmojiGetCursor(attackCommandInput.value, attackCommandInput.selectionStart);
+        attackCommandInput.value = text;
+        attackCommandInput.setSelectionRange(cursorPos, cursorPos);
+    });
 }
+
 
 // *** Revised Function: Parse the damage expression into individual damage instances ***
 function parseDamageExpression(damageExpr) {
@@ -461,9 +479,12 @@ function getThemeAndColor(damageType) {
         'sl': { theme: 'smooth', themeColor: '#708090' },// Slashing
         '':   { theme: 'smooth', themeColor: '#ffffff' },// Neutral
     };
-    return mapping[damageType] || { theme: 'default', themeColor: '#ffffff' };
-}
+    // Ensure damageType is a string and convert to lowercase
+    const key = (damageType || '').substring(0, 2).toLowerCase();
 
+    // Return the matched theme and color or default if not found
+    return mapping[key] || { theme: 'default', themeColor: '#ffffff' };
+}
 
 // Updated executeDiceRolls function
 async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
@@ -904,7 +925,9 @@ function parseInput(userInput) {
     // Helper functions
     function parseAttackRoll(text) {
         // Modified regex to capture optional attack_color
-        const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)*)?$/i;
+        //const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)*)?$/i;
+        const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)(?:[+-](?:\d+d\d+|\d+))*)?$/i;
+
         const match = text.match(attackRollPattern);
         if (!match) {
             return null;
@@ -1006,7 +1029,7 @@ function parseInput(userInput) {
     }
 
     function isAttackRoll(text) {
-        const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)*)?$/i;
+        const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)(?:[+-](?:\d+d\d+|\d+))*)?$/i;
         return attackRollPattern.test(text);
     }
 
@@ -1310,4 +1333,58 @@ function getTotalDamageColor(total) {
     if (total >= 41 && total <= 60) return 'damage-cyan';
     if (total >= 61) return 'damage-neon-green';
     return 'damage-default';
+}
+
+
+const damageTypeEmojis = {
+    "ac": "🧪", // Acid
+    "bl": "🔨", // Bludgeoning
+    "co": "❄️", // Cold
+    "fi": "🔥", // Fire
+    "fo": "💥", // Force
+    "li": "⚡", // Lightning
+    "ne": "💀", // Necrotic
+    "pi": "🗡️", // Piercing
+    "po": "☠️", // Poison
+    "ps": "🧠", // Psychic
+    "ra": "🌟", // Radiant
+    "sl": "⚔️", // Slashing
+    "th": "🌩️"  // Thunder
+};
+
+function textToEmoji(text) {
+    for (const [prefix, emoji] of Object.entries(damageTypeEmojis)) {
+        const regex = new RegExp(`${prefix}(?=[^A-Za-z]|$)`, 'gi');
+        text = text.replace(regex, emoji);
+    }
+    return text;
+}
+
+function textToEmojiGetCursor(text, cursorPos) {
+    let diff = 0;
+
+    for (const [prefix, emoji] of Object.entries(damageTypeEmojis)) {
+        const regex = new RegExp(`${prefix}(?=[^A-Za-z]|$)`, 'gi');
+        text = text.replace(regex, function(match, offset) {
+            if (offset < cursorPos) {
+                diff += emoji.length - match.length;
+            }
+            return emoji;
+        });
+    }
+    const newCursorPos = cursorPos + diff;
+
+    return { text, cursorPos: newCursorPos };
+}
+
+function emojiToText(text) {
+    const emojiToPrefix = {};
+    for (const [prefix, emoji] of Object.entries(damageTypeEmojis)) {
+        emojiToPrefix[emoji] = prefix;
+    }
+    for (const [emoji, prefix] of Object.entries(emojiToPrefix)) {
+        // Use split and join to handle multiple instances of the same emoji
+        text = text.split(emoji).join(prefix);
+    }
+    return text;
 }
