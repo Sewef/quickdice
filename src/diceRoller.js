@@ -177,6 +177,9 @@ function time_config(t) {
         settleTimeout: 4000,
         delay: 10,
         scale: 7,
+        lightIntensity: 1,
+        enableShadows: true,
+        shadowTransparency: 0.8,
         theme: 'smooth',
         themeColor: '#eeeeee',
         preloadThemes: ['gemstone', 'dice-of-rolling', 'smooth', 'rock', 'rust', 'blue-green-metal']
@@ -250,6 +253,8 @@ function createDiceBox() {
 
 // diceRoller.js
 export function setupDiceRoller(userId) {
+
+    console.log("settingDiceRoller")
     var diceBox = createDiceBox();
 
     const attackCommandInput = document.getElementById('attackCommand');
@@ -280,6 +285,7 @@ export function setupDiceRoller(userId) {
     const physicalCheckbox = document.getElementById('physicalRoll');
 
     rollButton.addEventListener('click', async () => {
+
         const userInput = attackCommandInput.value.trim();
         const attackParams = parseInput(userInput);
         if (!attackParams) {
@@ -300,20 +306,20 @@ export function setupDiceRoller(userId) {
             historyContainer.removeChild(historyContainer.lastChild); // Remove the oldest entry
         }
         if (!isHidden) {
-            OBR.broadcast.sendMessage("rodeo.owlbear.diceResults", {
+            OBR.broadcast.sendMessage("quickdice.diceResults", {
                 'command': userInput, 
                 'attackRolls': attackRolls, 
                 'damageResults': damageResults,
                 'hpResult': hpResult,
                 'isHidden': isHidden,
                 'isPhysical': isPhysical
-            }).catch(error => {
+            }, {destination: 'REMOTE'}).catch(error => {
                 console.error("Failed to send broadcast message:", error);
             });
         }
     });
 
-    OBR.broadcast.onMessage("rodeo.owlbear.diceResults", (event) => {
+    OBR.broadcast.onMessage("quickdice.diceResults", (event) => {
         const { command, attackRolls, damageResults, hpResult, isHidden, isPhysical } = event.data;
 
         const historyContainer = document.getElementById('history');
@@ -349,6 +355,13 @@ export function setupDiceRoller(userId) {
             event.preventDefault(); // Prevent the default action
             if (!isRolling) {
                 diceBox.clear();
+            }
+        }
+
+        if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+            event.preventDefault(); // Prevent the default action
+            if (!isRolling) {
+                attackCommandInput.select();
             }
         }
 
@@ -530,7 +543,6 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
             // Optionally, handle the error (e.g., retry, assign default values, etc.)
         }
     }
-    console.log(diceList);
     return diceList;
 }
 
@@ -539,7 +551,6 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
 
 
 async function performAttack(attackParams, diceBox, isPhysical) {
-    console.log("performAttack");
     let attackRolls = [];
     let damageResults = [];
     let hpResult = null;
@@ -816,7 +827,6 @@ async function performAttack(attackParams, diceBox, isPhysical) {
     if (automaticHit || attackRolls.length === 0) {
         attackRolls = null;
     }
-    console.log("damageResults", damageResults);
     return { attackRolls, damageResults, hpResult };
 }
 

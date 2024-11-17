@@ -504,7 +504,6 @@ html {
   /* Center the thumb vertically */
   position: relative;
   top: 50%;
-  transform: translateY(-50%);
   
   /* Optional: Add a box-shadow for better visibility */
   box-shadow: 0 0 2px rgba(0, 0, 0, 0.5);
