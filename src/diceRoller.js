@@ -153,12 +153,14 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
         if (command !== null) {
             const inputField = document.getElementById('attackCommand');
             if (inputField) {
-                inputField.value = command;
+                inputField.value = textToEmoji(command);
             }
         }
     }
     card.addEventListener('click', handleCardInteraction);
     card.addEventListener('touchend', handleCardInteraction);
+
+
     return card;
 }
 
@@ -167,7 +169,7 @@ function time_config(t) {
     const originalConfig = {
         gravity: 1.6,
         mass: 1,
-        friction: 0.5,
+        friction: 0.7,
         restitution: 0.3,
         angularDamping: 0.3,
         linearDamping: 0.3,
@@ -254,6 +256,8 @@ function createDiceBox() {
 // diceRoller.js
 export function setupDiceRoller(userId) {
 
+    updateCommandsList()
+
     var diceBox = createDiceBox();
 
     const attackCommandInput = document.getElementById('attackCommand');
@@ -286,7 +290,7 @@ export function setupDiceRoller(userId) {
     rollButton.addEventListener('click', async () => {
 
         const userInput = emojiToText(attackCommandInput.value).trim();
-        const attackParams = parseInput(userInput);
+        const { attackParams, cleanedUserInput } = parseInput(userInput);
         if (!attackParams) {
             attackCommandInput.classList.add('input-error');
             setTimeout(() => {
@@ -303,8 +307,10 @@ export function setupDiceRoller(userId) {
         // You can now use these booleans as needed
 
         const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox, isPhysical);
-        const historyEntry = createHistoryEntry(userInput, attackRolls, damageResults, hpResult);
-        historyContainer.prepend(historyEntry);
+        const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
+        if (historyEntry.textContent.length > 0) {
+            historyContainer.prepend(historyEntry);
+        }
         if (historyContainer.children.length >= 20) {
             historyContainer.removeChild(historyContainer.lastChild); // Remove the oldest entry
         }
@@ -320,6 +326,25 @@ export function setupDiceRoller(userId) {
                 console.error("Failed to send broadcast message:", error);
             });
         }
+
+        if (attackParams.save !== null) {
+            const currentMetadata = await OBR.player.getMetadata();
+            const commands = currentMetadata.commands || {};
+            commands[attackParams.save] = cleanedUserInput;
+            const update = {
+                commands
+            };
+            await OBR.player.setMetadata(update).then((data) => updateCommandsList());
+        }
+
+        if (attackParams.load !== null) {
+            const currentMetadata = await OBR.player.getMetadata();
+            const commands = currentMetadata.commands;
+            if (attackParams.load in commands) {
+                attackCommandInput.value = textToEmoji(commands[attackParams.load]);
+            }
+        }
+
     });
 
     OBR.broadcast.onMessage("quickdice.diceResults", (event) => {
@@ -327,7 +352,9 @@ export function setupDiceRoller(userId) {
 
         const historyContainer = document.getElementById('history');
         const historyEntry = createHistoryEntry(command, attackRolls, damageResults, hpResult, { isHidden, isPhysical });
-        historyContainer.prepend(historyEntry);
+        if (historyEntry.textContent.length > 0) {
+            historyContainer.prepend(historyEntry);
+        }
         if (historyContainer.children.length >= 20) {
             historyContainer.removeChild(historyContainer.lastChild); // Remove the oldest entry
         }
@@ -354,13 +381,6 @@ export function setupDiceRoller(userId) {
             physicalRollCheckbox.checked = !physicalRollCheckbox.checked; // Toggle checkbox
         }
 
-        if ((event.ctrlKey || event.metaKey) && event.key === 'i') {
-            event.preventDefault(); // Prevent the default action
-            const infoCheckbox = document.getElementById('info');
-            infoCheckbox.checked = !infoCheckbox.checked; // Toggle checkbox
-            infoCheckbox.dispatchEvent(new Event('change'));
-        }
-
         if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             event.preventDefault(); // Prevent the default action
             if (!isRolling) {
@@ -370,9 +390,7 @@ export function setupDiceRoller(userId) {
 
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
             event.preventDefault(); // Prevent the default action
-            if (!isRolling) {
-                attackCommandInput.select();
-            }
+            attackCommandInput.select();
         }
 
         if (event.key === 'Enter') {
@@ -407,13 +425,31 @@ export function setupDiceRoller(userId) {
     });
 
     attackCommandInput.addEventListener('input', function() {
-
         const { text, cursorPos } = textToEmojiGetCursor(attackCommandInput.value, attackCommandInput.selectionStart);
         attackCommandInput.value = text;
         attackCommandInput.setSelectionRange(cursorPos, cursorPos);
     });
 }
 
+function updateCommandsList() {
+
+    const commandsList = document.getElementById('commandsList');
+    commandsList.innerHTML = '';
+
+    OBR.player.getMetadata().then((data) => {
+        if (data.commands) {
+          Object.entries(data.commands).forEach(([key, command]) => {
+            const li = document.createElement('li');
+            const span = document.createElement('span');
+            span.classList.add('code-font');
+            span.textContent = `${key}:`;
+            li.appendChild(span);
+            li.appendChild(document.createTextNode(` ${command}`));
+            commandsList.appendChild(li);
+          });
+        }
+    });
+}
 
 // *** Revised Function: Parse the damage expression into individual damage instances ***
 function parseDamageExpression(damageExpr) {
@@ -859,8 +895,8 @@ function parseInput(userInput) {
     const strippedInput = userInput.replace(/\s+/g, '').toLowerCase();
 
     // Define keywords and their positions
-    const keywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm'];
-    const keywordPattern = /(atk|vs|dmg|hp|res|vul|imm)/g;
+    const keywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm', 'save', 'load'];
+    const keywordPattern = /(atk|vs|dmg|hp|res|vul|imm|save|load)/g;
     let match;
     const keywordMatches = [];
     while ((match = keywordPattern.exec(strippedInput)) !== null) {
@@ -896,6 +932,15 @@ function parseInput(userInput) {
         }
     }
 
+    const cleanedComponents = components.filter(component => 
+        component.keyword !== 'save' && component.keyword !== 'load'
+    );
+    
+    // Reconstruct the cleanedUserInput by concatenating the remaining components
+    const cleanedUserInput = cleanedComponents
+        .map(component => component.keyword ? component.keyword + component.text : component.text)
+        .join('');
+
     // Initialize variables
     let num_attacks = null;
     let modifier = null;
@@ -909,6 +954,8 @@ function parseInput(userInput) {
     let res = [];
     let vul = [];
     let imm = [];
+    let save = null;
+    let load = null;
 
     // Flags to detect multiple components
     let attackRollDetected = false;
@@ -918,6 +965,8 @@ function parseInput(userInput) {
     let resDetected = false;
     let vulDetected = false;
     let immDetected = false;
+    let saveDetected = false;
+    let loadDetected = false;
 
     // Collect unassigned components
     const unassignedComponents = [];
@@ -1153,6 +1202,10 @@ function parseInput(userInput) {
                 console.error(`Failed to parse immunities: "${text}"`);
                 return null;
             }
+        } else if (keyword === 'save') {
+            save = text;
+        } else if (keyword === 'load') {
+            load = text;
         } else {
             // No keyword, determine possible component types
             const possibleTypes = [];
@@ -1297,7 +1350,7 @@ function parseInput(userInput) {
         return null;
     }
 
-    return {
+    return {'attackParams': {
         num_attacks,
         modifier,
         attack_bonus,
@@ -1310,7 +1363,9 @@ function parseInput(userInput) {
         res,
         vul,
         imm,
-    };
+        save,
+        load
+    }, 'cleanedUserInput': cleanedUserInput};
 }
 
 

@@ -141,7 +141,7 @@ html {
 /* Damage Type Styling */
 .damage-type {
   color: #120a3d; /* Black font for damage types */
-  filter: saturate(80%);
+  filter: saturate(0%);
   font-size: 0.8em;
   text-align: center;
   vertical-align: middle;
@@ -153,7 +153,6 @@ html {
   gap: 10px;
   width: 100%;
   max-width: 800px;
-  padding: 10px;
   box-sizing: border-box;
 }
 
@@ -205,6 +204,8 @@ html {
 }
 
 .options {
+  margin-top: 4px;
+  margin-bottom: 4px;
   display: flex;
   align-items: center;
 }
@@ -249,7 +250,6 @@ html {
   list-style-type: none;
   padding: 0;
   margin: 0;
-  max-height: 250px; /* *** Increased from 180px to 250px *** */
   overflow-y: auto;
   overflow-x: hidden; /* *** Prevent horizontal scrolling *** */
 }
@@ -296,7 +296,7 @@ html {
     flex-direction: column;
     align-items: stretch;
     gap: 3px; /* *** Reduced from 5px to 3px *** */
-    margin-bottom: 8px; /* *** Reduced from 10px to 8px *** */
+    margin-bottom: 2px; /* *** Reduced from 10px to 8px *** */
   }
 
   .controls button {
@@ -313,6 +313,8 @@ html {
 
   .options {
     justify-content: flex-start;
+    align-content: flex-start;
+    flex-wrap: nowrap;
   }
 
   .history-container {
@@ -332,9 +334,6 @@ html {
     height: 95%;
   }
 
-  .history ul {
-    max-height: 200px; /* *** Increased from 180px to 200px *** */
-  }
 }
 
 /* *** Additional Styles for Consistency *** */
@@ -378,16 +377,6 @@ html {
   color: #FFD700; /* Gold for critical hits */
 }
 
-/* Style for checkboxes */
-.options label {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.9em; /* Adjust font size to match design */
-  color: var(--text-color); /* Match text color */
-  margin-right: 3px; /* Space between options */
-  cursor: pointer;
-}
-
 .options input[type="checkbox"] {
   appearance: none; /* Remove default checkbox styling */
   width: 16px; /* Size of the custom checkbox */
@@ -424,7 +413,7 @@ html {
 
 .options input[type="range"] {
   -webkit-appearance: none; /* Remove default styles */
-  width: 100px; /* Set width for the slider */
+  width: 90px; /* Set width for the slider */
   height: 6px; /* Height of the slider */
   background: var(--button-bg); /* Match background color */
   border-radius: 10px; /* Rounded edges for the slider */
@@ -472,7 +461,7 @@ html {
 
 .options input[type="range"] {
   -webkit-appearance: none; /* Remove default styling */
-  width: 100px; /* Set width for the slider */
+  width: 90px; /* Set width for the slider */
   height: 6px; /* Track height */
   background: var(--button-bg); /* Track background color */
   border-radius: 10px; /* Rounded edges for the track */
@@ -538,4 +527,80 @@ html {
 
 .options input[type="range"]:focus::-moz-range-thumb {
   box-shadow: 0 0 4px var(--button-hover-bg);
+}
+
+label[for="viewSelector"] {
+  font-size: 0.9em; /* Matches the font size of other labels */
+  color: var(--text-color);
+  display: inline-block;
+  vertical-align: middle;
+}
+
+/* Wrapper to align label and select horizontally */
+.select-wrapper {
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px; /* Space below the select component */
+}
+
+/* Style for the select element */
+#viewSelector {
+  appearance: none; /* Remove default styling */
+  -webkit-appearance: none; /* Remove default styling in WebKit browsers */
+  -moz-appearance: none; /* Remove default styling in Firefox */
+  background-color: var(--input-bg);
+  color: var(--text-color);
+  border: 1px solid #bdc3c7;
+  border-radius: var(--border-radius);
+  padding: 2px 3px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.3s, background-color 0.3s;
+  position: relative;
+  width: 80px; /* Adjust width as needed */
+}
+
+/* Add a custom arrow using a pseudo-element */
+#viewSelector::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--text-color);
+  transform: translateY(-50%);
+}
+
+/* Adjust the select's position to accommodate the arrow */
+.select-wrapper {
+  position: relative;
+}
+
+/* Hover state for the select */
+#viewSelector:hover {
+  border-color: var(--button-hover-bg);
+}
+
+/* Focus state for the select */
+#viewSelector:focus {
+  outline: none;
+  border-color: var(--button-hover-bg);
+  box-shadow: 0 0 4px var(--button-hover-bg);
+}
+
+/* Style for the options (limited styling across browsers) */
+#viewSelector option {
+  background-color: var(--input-bg);
+  color: var(--text-color);
+}
+
+/* Responsive adjustments */
+@media (max-width: 600px) {
+  .select-wrapper {
+    width: 100%;
+  }
 }

@@ -14,10 +14,13 @@ document.addEventListener("DOMContentLoaded", (event) => {
           </svg>
         </button>
         <div class="options">
-          <label>
-            <input type="checkbox" id="info" />
-            Info
-          </label>
+          <!-- Replace the info checkbox with a dropdown menu -->
+          <select id="viewSelector">
+            <option value="history" selected>Log</option>
+            <option value="info">Info</option>
+            <option value="commands">Commands</option>
+          </select>
+          <label for="viewSelector"></label>
           <label>
             <input type="checkbox" id="hiddenRoll" />
             Hidden
@@ -132,34 +135,71 @@ document.addEventListener("DOMContentLoaded", (event) => {
             </li>
         </ul>
     </p>
+    <p>
+        <h2>Saving and loading commands</h2>
+        <ul>
+            <li>Use <span class="code-font">save myname</span and <span class="code-font">load myname</span> to save and
+            load commands. ></li>
+            <li>Your saved commands can be seen in dropdown menu under "commands".</li>
+        </ul>
+    </p>
+      </div>
+      <div class="history" id="commands" style="display: none;">
+        <!-- Commands Content -->
+        <b>Saved Commands:</b> <br>
+        <ul id="commandsList">
+        </ul>
       </div>
     </div>
   `;
 
-  const infoCheckbox = document.getElementById('info');
+  const viewSelector = document.getElementById('viewSelector');
   const historyDiv = document.getElementById('history');
   const infoDiv = document.getElementById('infobox');
+  const commandsDiv = document.getElementById('commands');
 
-  infoCheckbox.addEventListener('change', (event) => {
-    if (event.target.checked) {
-      // Show the info div and hide the history div
-      infoDiv.style.display = 'block';
-      historyDiv.style.display = 'none';
-    } else {
-      // Show the history div and hide the info div
-      infoDiv.style.display = 'none';
-      historyDiv.style.display = 'block';
+  viewSelector.addEventListener('change', (event) => {
+    const selectedView = event.target.value;
+    switch (selectedView) {
+      case 'info':
+        infoDiv.style.display = 'block';
+        historyDiv.style.display = 'none';
+        commandsDiv.style.display = 'none';
+        break;
+      case 'commands':
+        commandsDiv.style.display = 'block';
+        infoDiv.style.display = 'none';
+        historyDiv.style.display = 'none';
+        break;
+      default:
+        historyDiv.style.display = 'block';
+        infoDiv.style.display = 'none';
+        commandsDiv.style.display = 'none';
     }
   });
 
-  // Initialize the display based on the initial state of the checkbox
-  if (infoCheckbox.checked) {
-    infoDiv.style.display = 'block';
-    historyDiv.style.display = 'none';
-  } else {
-    infoDiv.style.display = 'none';
-    historyDiv.style.display = 'block';
-  }
+  // Initialize the display based on the initial selection
+  const initializeView = () => {
+    const selectedView = viewSelector.value;
+    switch (selectedView) {
+      case 'info':
+        infoDiv.style.display = 'block';
+        historyDiv.style.display = 'none';
+        commandsDiv.style.display = 'none';
+        break;
+      case 'commands':
+        commandsDiv.style.display = 'block';
+        infoDiv.style.display = 'none';
+        historyDiv.style.display = 'none';
+        break;
+      default:
+        historyDiv.style.display = 'block';
+        infoDiv.style.display = 'none';
+        commandsDiv.style.display = 'none';
+    }
+  };
+
+  initializeView();
 
   OBR.onReady(() => OBR.player.getId().then((userId) => {
     setupDiceRoller(userId);
