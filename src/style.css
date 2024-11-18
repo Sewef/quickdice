@@ -141,7 +141,7 @@ html {
 /* Damage Type Styling */
 .damage-type {
   color: #120a3d; /* Black font for damage types */
-  filter: saturate(0%);
+  filter: saturate(80%);
   font-size: 0.8em;
   text-align: center;
   vertical-align: middle;
