@@ -371,10 +371,12 @@ html {
 /* Critical Hit and Hit Styling */
 .hit {
   color: #2ecc71; /* Green for hits */
+  font-weight: bold;
 }
 
 .crit {
   color: #FFD700; /* Gold for critical hits */
+  font-weight: bold;
 }
 
 .options input[type="checkbox"] {

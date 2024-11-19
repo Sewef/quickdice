@@ -138,9 +138,9 @@ document.addEventListener("DOMContentLoaded", (event) => {
     <p>
         <h2>Saving and loading commands</h2>
         <ul>
-            <li>Use <span class="code-font">save myname</span and <span class="code-font">load myname</span> to save and
-            load commands. ></li>
-            <li>Your saved commands can be seen in dropdown menu under "commands".</li>
+            <li>Use <span class="code-font">save mycommand</span, <span class="code-font">load mycommand</span> and <span class="code-font">load mycommand</span>
+            to save, load and delete commands. ></li>
+            <li>You can view your saved commands can be seen in the dropdown menu under "commands".</li>
         </ul>
     </p>
       </div>

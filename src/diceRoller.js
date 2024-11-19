@@ -30,115 +30,88 @@ function rollDice(number, diceType) {
 
 
 function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
-    // Create a card container
     const card = document.createElement('div');
-    card.classList.add('card'); // Card class for styling
-
-    // Create the entry container for history data
+    card.classList.add('card');
     const entry = document.createElement('div');
     entry.classList.add('history-entry');
 
-    // 1. Command
     if (command !== null) {
-        // Create the command display
         const commandDiv = document.createElement('div');
         commandDiv.innerText = textToEmoji(command);
-        commandDiv.classList.add('code-font'); // Apply code font to command display
+        commandDiv.classList.add('code-font'); 
         entry.appendChild(commandDiv);
     }
 
-    // 2. Attack Rolls
     if (attackRolls !== null) {
-        // Create attack roll display
         const attackDiv = document.createElement('div');
         attackDiv.innerHTML = attackRolls.join(', ');
         entry.appendChild(attackDiv);
     }
 
-    // 3. Damage Results
     if (damageResults !== null) {
-        // Create damage display
         const damageDiv = document.createElement('div');
 
-        // Process damage results
         const damageExpressionParts = damageResults.map(result => {
             if (result === 'm') {
                 return `<span class="damage-miss">m</span>`;
             }
 
-            // Group damage by type and sum them
             const damageByType = {};
             result.forEach(d => {
                 const type = d.damageType || 'untyped';
                 damageByType[type] = (damageByType[type] || 0) + d.value;
             });
 
-            // Convert damageByType to array and sort by descending damage
             const sortedDamage = Object.entries(damageByType)
                 .map(([type, value]) => ({ type, value }))
                 .sort((a, b) => b.value - a.value);
 
-            // Create damage strings
             const damageStrings = sortedDamage.map(d => {
                 const colorClass = getDamageColor(d.value);
                 return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${textToEmoji(d.type)}</span>` : ''}</span>`;
             }).join(' + ');
 
-            // Determine if square brackets are needed
             return sortedDamage.length > 1 ? `[${damageStrings}]` : damageStrings;
         });
 
-        // Calculate total damage per type across all attacks
         const totalDamageByType = {};
         damageResults.forEach(result => {
-            if (result === 'm') return; // Skip misses
+            if (result === 'm') return;
             result.forEach(d => {
                 const type = d.damageType || 'untyped';
                 totalDamageByType[type] = (totalDamageByType[type] || 0) + d.value;
             });
         });
 
-        // Convert totalDamageByType to array and sort by descending damage
         const sortedTotalDamage = Object.entries(totalDamageByType)
             .map(([type, value]) => ({ type, value }))
             .sort((a, b) => b.value - a.value);
 
-        // Create total damage strings with color coding for both numbers and types
         const sortedTotalDamageStrings = sortedTotalDamage.map(d => {
             const colorClass = getDamageColor(d.value);
             return `<span class="${colorClass}">${d.value}${d.type !== 'untyped' ? `<span class="damage-type">${textToEmoji(d.type)}</span>` : ''}</span>`;
         }).join(' + ');
 
-        // Calculate overall total damage
         const overallTotalDamage = sortedTotalDamage.reduce((acc, d) => acc + d.value, 0);
 
-        // Adjust display based on the number of attack rolls
         if (damageExpressionParts.length === 1) {
-            // Only one attack roll, display damage without '=' and total
             damageDiv.innerHTML = damageExpressionParts[0];
         } else if (sortedTotalDamage.length > 1) {
-            // Multiple damage types
             const formattedTotalDamage = `${sortedTotalDamageStrings} = <span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}</span>`;
-            // Combine individual damage expressions and total damage
             const formattedDamageDisplay = `${damageExpressionParts.join(' + ')} = ${formattedTotalDamage}`;
             damageDiv.innerHTML = formattedDamageDisplay;
         } else if (sortedTotalDamage.length === 1) {
-            // Only one damage type, include the type in the overall total
             const totalType = sortedTotalDamage[0].type !== 'untyped' ? textToEmoji(sortedTotalDamage[0].type) : '';
             const formattedTotalDamage = `<span class="${getTotalDamageColor(overallTotalDamage)}">${overallTotalDamage}${totalType !== 'untyped' ? `<span class="damage-type">${textToEmoji(totalType)}</span>` : ''}</span>`;
-            // Display the damage expressions and total
             damageDiv.innerHTML = `${damageExpressionParts.join(' + ')} = ${formattedTotalDamage}`;
         } else {
-            // No damage dealt
             damageDiv.innerHTML = `${damageExpressionParts.join(' + ')}`;
         }
 
         entry.appendChild(damageDiv);
     }
 
-    // 4. HP Result
     if (hpResult !== null) {
-        // Create hp display
         const hpDiv = document.createElement('div');
         hpDiv.style.color = 'white';
         hpDiv.style.fontWeight = 'bold';
@@ -146,7 +119,6 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
         entry.appendChild(hpDiv);
     }
 
-    // Append entry to the card container
     card.appendChild(entry);
 
     function handleCardInteraction() {
@@ -212,7 +184,7 @@ function time_config(t) {
 function createDiceBox() {
     const diceCanvas = document.getElementById("dice-canvas");
     if (diceCanvas) {
-        diceCanvas.remove(); // Removes the element from the DOM
+        diceCanvas.remove();
     }
 
     var diceBox = new DiceBox(time_config(0.35 + parseInt(document.querySelector("#physicalSlider").value) / 100 * (2 - 0.35)));
@@ -220,11 +192,11 @@ function createDiceBox() {
     const canvas = document.getElementById('dice-canvas');
     canvas.style.pointerEvents = "none";
     canvas.style.position = 'absolute';
-    canvas.style.top = '0'; // Align to the top
-    canvas.style.left = '0'; // Align to the left
-    canvas.style.width = '100%'; // Full width
-    canvas.style.height = '100%'; // Full height
-    canvas.style.zIndex = '10'; // Keep it above other elements
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.zIndex = '10';
 
     function resizeCanvas() {
         const rect = canvas.getBoundingClientRect();
@@ -268,12 +240,10 @@ export function setupDiceRoller(userId) {
         '3a+2 vs {ac} dmg {count}d6co+{bonus}+1d6pi+5'
     ];
     
-    // Generate random values for AC and bonus
-    const randomAC = Math.floor(Math.random() * 4) + 10; // Random AC between 10 and 13
-    const randomBonus = Math.floor(Math.random() * 5) + 1; // Random bonus between 1 and 5
-    const randomCount = Math.floor(Math.random() * 3) + 1; // Random count between 1 and 3
+    const randomAC = Math.floor(Math.random() * 4) + 10;
+    const randomBonus = Math.floor(Math.random() * 5) + 1;
+    const randomCount = Math.floor(Math.random() * 3) + 1;
 
-    // Pick a random example and replace placeholders
     const randomExample = examples[Math.floor(Math.random() * examples.length)]
         .replace('{ac}', randomAC)
         .replace('{bonus}', randomBonus)
@@ -283,7 +253,6 @@ export function setupDiceRoller(userId) {
     const historyContainer = document.getElementById('history');
     const rollButton = document.getElementById('rollButton');
 
-    // Get references to the new checkboxes
     const hiddenCheckbox = document.getElementById('hiddenRoll');
     const physicalCheckbox = document.getElementById('physicalRoll');
 
@@ -299,12 +268,8 @@ export function setupDiceRoller(userId) {
 
             return;
         }
-        
-        // Retrieve the states of the checkboxes
         const isHidden = hiddenCheckbox.checked;
         const isPhysical = physicalCheckbox.checked;
-
-        // You can now use these booleans as needed
 
         const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox, isPhysical);
         const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
@@ -312,51 +277,61 @@ export function setupDiceRoller(userId) {
             historyContainer.prepend(historyEntry);
         }
         if (historyContainer.children.length >= 20) {
-            historyContainer.removeChild(historyContainer.lastChild); // Remove the oldest entry
+            historyContainer.removeChild(historyContainer.lastChild);
         }
         if (!isHidden) {
             OBR.broadcast.sendMessage("quickdice.diceResults", {
-                'command': userInput, 
+                'command': cleanedUserInput, 
                 'attackRolls': attackRolls, 
                 'damageResults': damageResults,
-                'hpResult': hpResult,
-                'isHidden': isHidden,
-                'isPhysical': isPhysical
+                'hpResult': hpResult
             }, {destination: 'REMOTE'}).catch(error => {
                 console.error("Failed to send broadcast message:", error);
             });
         }
 
-        if (attackParams.save !== null) {
-            const currentMetadata = await OBR.player.getMetadata();
-            const commands = currentMetadata.commands || {};
-            commands[attackParams.save] = cleanedUserInput;
-            const update = {
-                commands
-            };
-            await OBR.player.setMetadata(update).then((data) => updateCommandsList());
+        if (attackParams.save_content !== null) {
+            const commandsJSON = localStorage.getItem('commands');
+            let commands = commandsJSON ? JSON.parse(commandsJSON) : {};
+            commands[attackParams.save_content] = cleanedUserInput;
+            const sortedCommands = Object.keys(commands).sort().reduce((acc, key) => {
+                acc[key] = commands[key];
+                return acc;
+            }, {});
+            localStorage.setItem('commands', JSON.stringify(sortedCommands));
+            updateCommandsList();
         }
-
-        if (attackParams.load !== null) {
-            const currentMetadata = await OBR.player.getMetadata();
-            const commands = currentMetadata.commands;
-            if (attackParams.load in commands) {
-                attackCommandInput.value = textToEmoji(commands[attackParams.load]);
+        
+        if (attackParams.load_content !== null) {
+            const commandsJSON = localStorage.getItem('commands');
+            if (commandsJSON) {
+                const commands = JSON.parse(commandsJSON);
+                if (attackParams.load_content in commands) {
+                    attackCommandInput.value = textToEmoji(commands[attackParams.load_content]);
+                }
             }
         }
 
+        if (attackParams.delete_content !== null) {
+            const commands = JSON.parse(localStorage.getItem('commands') || '{}');
+            if (commands.hasOwnProperty(attackParams.delete_content)) {
+                delete commands[attackParams.delete_content];
+                localStorage.setItem('commands', JSON.stringify(commands));
+                updateCommandsList();
+            }
+        }
     });
 
     OBR.broadcast.onMessage("quickdice.diceResults", (event) => {
-        const { command, attackRolls, damageResults, hpResult, isHidden, isPhysical } = event.data;
+        const { command, attackRolls, damageResults, hpResult } = event.data;
 
         const historyContainer = document.getElementById('history');
-        const historyEntry = createHistoryEntry(command, attackRolls, damageResults, hpResult, { isHidden, isPhysical });
+        const historyEntry = createHistoryEntry(command, attackRolls, damageResults, hpResult);
         if (historyEntry.textContent.length > 0) {
             historyContainer.prepend(historyEntry);
         }
         if (historyContainer.children.length >= 20) {
-            historyContainer.removeChild(historyContainer.lastChild); // Remove the oldest entry
+            historyContainer.removeChild(historyContainer.lastChild); 
         }
     });
 
@@ -367,37 +342,30 @@ export function setupDiceRoller(userId) {
     });
 
     document.addEventListener('keydown', (event) => {
-        // For both Windows/Linux (Ctrl) and macOS (Cmd), trigger on Ctrl + H or Cmd + H
         if ((event.ctrlKey || event.metaKey) && event.key === 'h') {
-            event.preventDefault(); // Prevent the default action
+            event.preventDefault();
             const hiddenRollCheckbox = document.getElementById('hiddenRoll');
-            hiddenRollCheckbox.checked = !hiddenRollCheckbox.checked; // Toggle checkbox
+            hiddenRollCheckbox.checked = !hiddenRollCheckbox.checked;
         }
-      
-        // For both Windows/Linux (Ctrl) and macOS (Cmd), trigger on Ctrl + P or Cmd + P
         if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
-            event.preventDefault(); // Prevent the default action
+            event.preventDefault(); 
             const physicalRollCheckbox = document.getElementById('physicalRoll');
-            physicalRollCheckbox.checked = !physicalRollCheckbox.checked; // Toggle checkbox
+            physicalRollCheckbox.checked = !physicalRollCheckbox.checked; 
         }
-
         if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
-            event.preventDefault(); // Prevent the default action
-            if (!isRolling) {
+            if (!isRolling || true) {
                 diceBox.clear();
             }
         }
-
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-            event.preventDefault(); // Prevent the default action
+            event.preventDefault(); 
             attackCommandInput.select();
         }
-
         if (event.key === 'Enter') {
-            event.preventDefault(); // Prevent default action (form submission, etc.)
+            event.preventDefault(); 
             const rollButton = document.getElementById('rollButton');
             if (rollButton) {
-                rollButton.click(); // Trigger roll button click
+                rollButton.click();
             }
         }
     });
@@ -432,33 +400,31 @@ export function setupDiceRoller(userId) {
 }
 
 function updateCommandsList() {
-
     const commandsList = document.getElementById('commandsList');
     commandsList.innerHTML = '';
-
-    OBR.player.getMetadata().then((data) => {
-        if (data.commands) {
-          Object.entries(data.commands).forEach(([key, command]) => {
+    const commandsJSON = localStorage.getItem('commands');
+    if (commandsJSON) {
+        const commands = JSON.parse(commandsJSON);
+        Object.entries(commands).forEach(([key, command]) => {
             const li = document.createElement('li');
-            const span = document.createElement('span');
-            span.classList.add('code-font');
-            span.textContent = `${key}:`;
-            li.appendChild(span);
-            li.appendChild(document.createTextNode(` ${command}`));
+            const spanKey = document.createElement('span');
+            spanKey.textContent = `${key}:`;
+            const spanCommand = document.createElement('span');
+            spanCommand.textContent = ` ${textToEmoji(command)}`;
+            spanCommand.classList.add('code-font');
+            li.appendChild(spanKey);
+            li.appendChild(spanCommand);
             commandsList.appendChild(li);
-          });
-        }
-    });
+        });
+    }
 }
 
-// *** Revised Function: Parse the damage expression into individual damage instances ***
+
 function parseDamageExpression(damageExpr) {
-    // Split the damage expression by '+' while keeping track of '-' operators
     const damageInstances = damageExpr.split('+').map(instance => instance.trim()).filter(instance => instance.length > 0);
     const components = [];
 
     for (let instance of damageInstances) {
-        // Match patterns like "1d6fi", "3", "2d8ne", "1d4co", "2pi", "1d6", "1d12fi"
         const regex = /^([+-]?)(\d+)(?:d(\d+))?([a-z]*)$/i;
         const match = instance.match(regex);
         if (!match) {
@@ -467,10 +433,10 @@ function parseDamageExpression(damageExpr) {
         }
 
         let operator = match[1];
-        if (operator === '') operator = '+'; // Default operator is '+'
+        if (operator === '') operator = '+'; 
         const number = parseInt(match[2], 10);
         const diceType = match[3] ? parseInt(match[3], 10) : null;
-        const damageType = match[4] ? match[4].toLowerCase() : ''; // Default to empty string if no type
+        const damageType = match[4] ? match[4].toLowerCase() : ''; 
 
         if (isNaN(number)) {
             console.error(`Invalid number in damage instance: "${match[2]}"`);
@@ -497,90 +463,67 @@ function parseDamageExpression(damageExpr) {
 
 
 
-// Helper function to map damage types to themes and colors
 function getThemeAndColor(damageType) {
     const mapping = {
-        'ac': { theme: 'blue-green-metal' },            // Acid
-        'co': { theme: 'smooth', themeColor: '#00ffff' },// Cold
-        'fi': { theme: 'smooth', themeColor: '#ff4500' },// Fire
-        'fo': { theme: 'smooth', themeColor: '#8b4513' },// Force
-        'li': { theme: 'rust', themeColor: '#ffff00' },// Lightning
-        'ne': { theme: 'smooth', themeColor: '#2f3f43' }, // Necrotic
-        'po': { theme: 'smooth', themeColor: '#008000' },// Poison
-        'ps': { theme: 'smooth', themeColor: '#ee82ee' },// Psychic
-        'ra': { theme: 'smooth', themeColor: '#ffd700' },// Radiant
-        'th': { theme: 'smooth', themeColor: '#800080' },// Thunder
-        'bl': { theme: 'rock', themeColor: '#888888'},           // Bludgeoning
-        'pi': { theme: 'smooth', themeColor: '#c0c0c0' },// Piercing
-        'sl': { theme: 'smooth', themeColor: '#708090' },// Slashing
-        '':   { theme: 'smooth', themeColor: '#ffffff' },// Neutral
+        'ac': { theme: 'blue-green-metal' },            
+        'co': { theme: 'smooth', themeColor: '#00ffff' },
+        'fi': { theme: 'smooth', themeColor: '#ff4500' },
+        'fo': { theme: 'smooth', themeColor: '#8b4513' },
+        'li': { theme: 'rust', themeColor: '#ffff00' },
+        'ne': { theme: 'smooth', themeColor: '#2f3f43' }, 
+        'po': { theme: 'smooth', themeColor: '#008000' },
+        'ps': { theme: 'smooth', themeColor: '#ee82ee' },
+        'ra': { theme: 'smooth', themeColor: '#ffd700' },
+        'th': { theme: 'smooth', themeColor: '#800080' },
+        'bl': { theme: 'rock', themeColor: '#888888'},
+        'pi': { theme: 'smooth', themeColor: '#c0c0c0' },
+        'sl': { theme: 'smooth', themeColor: '#708090' },
+        '':   { theme: 'smooth', themeColor: '#ffffff' },
     };
-    // Ensure damageType is a string and convert to lowercase
     const key = (damageType || '').substring(0, 2).toLowerCase();
-
-    // Return the matched theme and color or default if not found
     return mapping[key] || { theme: 'default', themeColor: '#ffffff' };
 }
 
-// Updated executeDiceRolls function
 async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
 
     if (!physicalDiceRoll) {
-        // Handle non-physical dice rolls (e.g., simulated rolls)
         diceList.forEach(attackDice => {
             attackDice.dice.forEach(dice => {
-                const diceType = parseInt(dice.type.substring(1)); // Remove 'd' from 'd20', etc.
+                const diceType = parseInt(dice.type.substring(1));
                 const count = dice.count;
                 const { total, rolls } = rollDice(count, diceType);
                 dice.total = total;
             });
         });
     } else {
-        const diceArray = [];    // Array to send to diceBox.roll
-        const diceMapping = [];  // Mapping to associate groupId to diceObj
+        const diceArray = [];
+        const diceMapping = [];
 
-        // Initialize groupId counter
         let groupIdCounter = 0;
 
-        // Prepare diceArray and diceMapping
         diceList.forEach((attackDice) => {
             attackDice.dice.forEach((dice) => {
-                const diceType = parseInt(dice.type.substring(1)); // e.g., 'd6' -> 6
+                const diceType = parseInt(dice.type.substring(1));
                 const count = dice.count;
-
-                // Construct the dice object as per documentation
                 const diceObj = {
-                    modifier: 0,    // Assuming no modifier; adjust if necessary
+                    modifier: 0,
                     qty: count,
                     sides: diceType,
                 };
-
-                // Assign theme and themeColor if damageType is specified
                 if (dice.damageType) {
                     const { theme, themeColor } = getThemeAndColor(dice.damageType);
                     diceObj.theme = theme;
                     diceObj.themeColor = themeColor;
                 }
-
-                // Add the dice object to the array
                 diceArray.push(diceObj);
-
-                // Store mapping with groupId corresponding to the current diceObj's index in diceArray
                 diceMapping.push({ groupId: groupIdCounter, diceObj: dice });
-
-                // Increment groupIdCounter for the next group
                 groupIdCounter++;
             });
         });
 
         try {
-            // Perform the dice roll using diceBox.roll
             const results = await diceBox.roll(diceArray);
-
-            // Initialize an object to hold totals per groupId
             const groupTotals = {};
-
-            // Sum the values of die results per groupId
             results.forEach((dieResult) => {
                 const { groupId, value } = dieResult;
                 if (!groupTotals[groupId]) {
@@ -588,8 +531,6 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
                 }
                 groupTotals[groupId] += value;
             });
-
-            // Assign the summed total to each corresponding diceObj
             diceMapping.forEach((mapping) => {
                 const { groupId, diceObj } = mapping;
                 const total = groupTotals[groupId] || 0;
@@ -597,7 +538,6 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
             });
         } catch (error) {
             console.error("Error during dice roll:", error);
-            // Optionally, handle the error (e.g., retry, assign default values, etc.)
         }
     }
     return diceList;
@@ -615,58 +555,43 @@ async function performAttack(attackParams, diceBox, isPhysical) {
 
     let diceRolls = { attackDice: [], damageDice: [] };
 
-    // Initialize hpResult if hp is provided
     if (attackParams.hp !== null && attackParams.hp !== undefined) {
         hpResult = { old: attackParams.hp, new: attackParams.hp };
     }
 
-    // Set default values for res, vul, imm
     const res = attackParams.res || [];
     const vul = attackParams.vul || [];
     const imm = attackParams.imm || [];
 
-    // Handle null or undefined damage_components
     if (attackParams.damage_components === null || attackParams.damage_components === undefined) {
         damageResults = null;
     }
 
-    // Set default for attack_bonus
     const attack_bonus = attackParams.attack_bonus || [];
 
-    // Introduce automaticHit flag
     let automaticHit = false;
 
-    // Determine the number of attacks
     if (attackParams.num_attacks === null || attackParams.num_attacks === undefined) {
-        // No attack roll is made, but damage is rolled if damage_components is given
-        attackParams.num_attacks = 1; // Treat as 1 automatic hit
+        attackParams.num_attacks = 1;
         automaticHit = true;
     } else if (attackParams.num_attacks <= 0) {
-        attackParams.num_attacks = 0; // No attacks are made
+        attackParams.num_attacks = 0;
     }
 
-    // Collect all dice rolls for attacks
     if (!automaticHit) {
         for (let i = 0; i < attackParams.num_attacks; i++) {
-            // Collect dice rolls for attack
             let attackDice = { attackIndex: i, dice: [] };
-            if (attackParams.modifier === 'a') { // Advantage
-                // Roll two d20s
+            if (attackParams.modifier === 'a') {
                 attackDice.dice.push({ type: 'd20', count: 1, description: `Attack ${i + 1} roll1`, damageType: attackParams.attack_color });
                 attackDice.dice.push({ type: 'd20', count: 1, description: `Attack ${i + 1} roll2`, damageType: attackParams.attack_color });
-            } else if (attackParams.modifier === 'd') { // Disadvantage
-                // Roll two d20s
+            } else if (attackParams.modifier === 'd') {
                 attackDice.dice.push({ type: 'd20', count: 1, description: `Attack ${i + 1} roll1`, damageType: attackParams.attack_color });
                 attackDice.dice.push({ type: 'd20', count: 1, description: `Attack ${i + 1} roll2`, damageType: attackParams.attack_color });
-            } else { // Normal
-                // Roll one d20
+            } else {
                 attackDice.dice.push({ type: 'd20', count: 1, description: `Attack ${i + 1} roll`, damageType: attackParams.attack_color });
             }
-
-            // Collect dice rolls from attack_bonus
             attack_bonus.forEach(bonus => {
                 if (bonus.isDice) {
-                    // Add the dice to attackDice
                     attackDice.dice.push({
                         type: `d${bonus.diceType}`,
                         count: bonus.count,
@@ -675,14 +600,11 @@ async function performAttack(attackParams, diceBox, isPhysical) {
                         damageType: attackParams.attack_color
                     });
                 }
-                // Numerical bonuses don't require dice rolls
             });
 
             diceRolls.attackDice.push(attackDice);
         }
     }
-
-    // Roll all the dice for attacks if physicalDiceRoll is false
     if (!automaticHit && diceRolls.attackDice.length > 0) {
         diceRolls.attackDice = await executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox);
     }
@@ -796,23 +718,16 @@ async function performAttack(attackParams, diceBox, isPhysical) {
             }
         }
     }
-    // Roll all the dice for damage if physicalDiceRoll is false
     if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0)) {
         diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox);
     }
-
-    // Process damage results
     diceRolls.damageDice.forEach(damageDice => {
         let damageInstances = [];
-
-        // Process dice-based damage components
         damageDice.dice.forEach(dice => {
             let adjustedValue = dice.total;
             if (dice.operator === '-') {
                 adjustedValue = -adjustedValue;
             }
-
-            // Ensure damage is not negative
             if (adjustedValue < 0) {
                 adjustedValue = 0;
             }
@@ -838,15 +753,11 @@ async function performAttack(attackParams, diceBox, isPhysical) {
                 damageType: damageType
             });
         });
-
-        // Process numerical damage components
         damageDice.numericalComponents.forEach(component => {
             let adjustedValue = component.total;
             if (component.operator === '-') {
                 adjustedValue = -adjustedValue;
             }
-
-            // Ensure damage is not negative
             if (adjustedValue < 0) {
                 adjustedValue = 0;
             }
@@ -879,8 +790,6 @@ async function performAttack(attackParams, diceBox, isPhysical) {
     if (hpResult !== null) {
         hpResult.new = hpResult.old - totalDamage;
     }
-
-    // If no attack rolls were made, set attackRolls to null
     if (automaticHit || attackRolls.length === 0) {
         attackRolls = null;
     }
@@ -891,22 +800,17 @@ async function performAttack(attackParams, diceBox, isPhysical) {
 
 
 function parseInput(userInput) {
-    // Strip all spaces and convert to lowercase
     const strippedInput = userInput.replace(/\s+/g, '').toLowerCase();
 
-    // Define keywords and their positions
-    const keywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm', 'save', 'load'];
-    const keywordPattern = /(atk|vs|dmg|hp|res|vul|imm|save|load)/g;
+    const keywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm', 'save', 'load', 'delete'];
+    const keywordPattern = /(atk|vs|dmg|hp|res|vul|imm|save|load|delete)/g;
     let match;
     const keywordMatches = [];
     while ((match = keywordPattern.exec(strippedInput)) !== null) {
         keywordMatches.push({ keyword: match[1], index: match.index });
     }
-
-    // Sort keyword matches by their index in the input
     keywordMatches.sort((a, b) => a.index - b.index);
 
-    // Initialize components array
     const components = [];
     let currentIndex = 0;
 
@@ -915,13 +819,11 @@ function parseInput(userInput) {
         let keyword = i < keywordMatches.length ? keywordMatches[i].keyword : null;
 
         if (currentIndex < nextIndex) {
-            // Text between currentIndex and nextIndex without a keyword
             const text = strippedInput.slice(currentIndex, nextIndex);
             components.push({ keyword: null, text });
         }
 
         if (keyword) {
-            // Extract text for this keyword
             const start = keywordMatches[i].index + keyword.length;
             let end = i + 1 < keywordMatches.length ? keywordMatches[i + 1].index : strippedInput.length;
             const text = strippedInput.slice(start, end);
@@ -933,19 +835,17 @@ function parseInput(userInput) {
     }
 
     const cleanedComponents = components.filter(component => 
-        component.keyword !== 'save' && component.keyword !== 'load'
+        component.keyword !== 'save' && component.keyword !== 'load' && component.keyword !== 'delete'
     );
     
-    // Reconstruct the cleanedUserInput by concatenating the remaining components
     const cleanedUserInput = cleanedComponents
-        .map(component => component.keyword ? component.keyword + component.text : component.text)
-        .join('');
+        .map(component => component.keyword ? component.keyword + ' ' + component.text : component.text)
+        .join(' ');
 
-    // Initialize variables
     let num_attacks = null;
     let modifier = null;
     let attack_bonus = null;
-    let attack_color = ''; // Added attack_color with default value
+    let attack_color = '';
     let base_target_ac = null;
     let ac_modifier = 0;
     let target_ac = null;
@@ -954,10 +854,10 @@ function parseInput(userInput) {
     let res = [];
     let vul = [];
     let imm = [];
-    let save = null;
-    let load = null;
+    let save_content = null;
+    let load_content = null;
+    let delete_content = null;
 
-    // Flags to detect multiple components
     let attackRollDetected = false;
     let targetACDetected = false;
     let damageDetected = false;
@@ -965,16 +865,10 @@ function parseInput(userInput) {
     let resDetected = false;
     let vulDetected = false;
     let immDetected = false;
-    let saveDetected = false;
-    let loadDetected = false;
 
-    // Collect unassigned components
     const unassignedComponents = [];
 
-    // Helper functions
     function parseAttackRoll(text) {
-        // Modified regex to capture optional attack_color
-        //const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)*)?$/i;
         const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)(?:[+-](?:\d+d\d+|\d+))*)?$/i;
 
         const match = text.match(attackRollPattern);
@@ -984,11 +878,9 @@ function parseInput(userInput) {
 
         const num_attacks = parseInt(match[1], 10);
         const modifier = match[2].toLowerCase();
-        const attack_color = match[3] || ''; // Extract attack_color or set to ''
-
+        const attack_color = match[3] || '';
         const attack_bonus_str = match[4] || '';
 
-        // Parse attack bonuses
         const attack_bonus = [];
         if (attack_bonus_str) {
             const bonusPattern = /([+-])(?:\s*)(\d+d\d+|\d+)/gi;
@@ -1027,7 +919,7 @@ function parseInput(userInput) {
             num_attacks,
             modifier,
             attack_bonus,
-            attack_color, // Include attack_color in the returned object
+            attack_color,
         };
     }
 
@@ -1040,7 +932,6 @@ function parseInput(userInput) {
         const base_target_ac = parseInt(match[1], 10);
         const ac_modifiers_str = match[2];
 
-        // Calculate total AC modifier
         let ac_modifier = 0;
         if (ac_modifiers_str) {
             const acModifierPattern = /([+-]\d+)/g;
@@ -1097,7 +988,6 @@ function parseInput(userInput) {
         return damageTypePattern.test(text);
     }
 
-    // Process each component
     for (const component of components) {
         const { keyword, text } = component;
         if (keyword === 'atk') {
@@ -1112,7 +1002,7 @@ function parseInput(userInput) {
                 num_attacks = result.num_attacks;
                 modifier = result.modifier;
                 attack_bonus = result.attack_bonus;
-                attack_color = result.attack_color; // Assign attack_color
+                attack_color = result.attack_color;
             } else {
                 console.error(`Failed to parse attack roll: "${text}"`);
                 return null;
@@ -1140,7 +1030,6 @@ function parseInput(userInput) {
             }
             damageDetected = true;
 
-            // Assume parseDamageExpression is defined elsewhere
             damage_components = parseDamageExpression(text);
             if (!damage_components) {
                 console.error(`Failed to parse damage expression: "${text}"`);
@@ -1203,11 +1092,12 @@ function parseInput(userInput) {
                 return null;
             }
         } else if (keyword === 'save') {
-            save = text;
+            save_content = text;
         } else if (keyword === 'load') {
-            load = text;
+            load_content = text;
+        } else if (keyword === 'delete') {
+            delete_content = text;
         } else {
-            // No keyword, determine possible component types
             const possibleTypes = [];
             const parsedResults = {};
 
@@ -1255,7 +1145,7 @@ function parseInput(userInput) {
                     num_attacks = parsedResults['attack'].num_attacks;
                     modifier = parsedResults['attack'].modifier;
                     attack_bonus = parsedResults['attack'].attack_bonus;
-                    attack_color = parsedResults['attack'].attack_color; // Assign attack_color
+                    attack_color = parsedResults['attack'].attack_color;
                     attackRollDetected = true;
                 } else if (type === 'damage') {
                     damage_components = parsedResults['damage'];
@@ -1288,11 +1178,9 @@ function parseInput(userInput) {
         }
     }
 
-    // Now handle unassigned components
     for (const component of unassignedComponents) {
         const { text, possibleTypes, parsedResults } = component;
 
-        // Determine which types are still missing
         const remainingTypes = [];
         if (!attackRollDetected && possibleTypes.includes('attack')) remainingTypes.push('attack');
         if (!targetACDetected && possibleTypes.includes('target_ac')) remainingTypes.push('target_ac');
@@ -1303,14 +1191,13 @@ function parseInput(userInput) {
         if (!immDetected && possibleTypes.includes('imm')) remainingTypes.push('imm');
 
         if (remainingTypes.length >= 1) {
-            // Choose the type with highest priority: atk > vs > dmg > hp > res > vul > imm
             const priority = ['attack', 'target_ac', 'damage', 'hp', 'res', 'vul', 'imm'];
             const type = priority.find(t => remainingTypes.includes(t));
             if (type === 'attack') {
                 num_attacks = parsedResults['attack'].num_attacks;
                 modifier = parsedResults['attack'].modifier;
                 attack_bonus = parsedResults['attack'].attack_bonus;
-                attack_color = parsedResults['attack'].attack_color; // Assign attack_color
+                attack_color = parsedResults['attack'].attack_color;
                 attackRollDetected = true;
             } else if (type === 'target_ac') {
                 base_target_ac = parsedResults['target_ac'].base_target_ac;
@@ -1339,7 +1226,6 @@ function parseInput(userInput) {
         }
     }
 
-    // Additional validation
     if (num_attacks !== null && (num_attacks < 1 || !Number.isInteger(num_attacks))) {
         console.error(`Invalid number of attacks: ${num_attacks}`);
         return null;
@@ -1354,7 +1240,7 @@ function parseInput(userInput) {
         num_attacks,
         modifier,
         attack_bonus,
-        attack_color, // Include attack_color in the output
+        attack_color,
         base_target_ac,
         ac_modifier,
         target_ac,
@@ -1363,13 +1249,12 @@ function parseInput(userInput) {
         res,
         vul,
         imm,
-        save,
-        load
+        save_content,
+        load_content,
+        delete_content
     }, 'cleanedUserInput': cleanedUserInput};
 }
 
-
-// Function to determine damage color based on value
 function getDamageColor(damage) {
     if (damage === 'm') return 'damage-miss';
     if (damage >= 6 && damage <= 15) return 'damage-yellow';
@@ -1380,7 +1265,6 @@ function getDamageColor(damage) {
     return 'damage-default';
 }
 
-// Function to determine total damage color based on total value
 function getTotalDamageColor(total) {
     if (total >= 6 && total <= 15) return 'damage-yellow';
     if (total >= 16 && total <= 25) return 'damage-red';
@@ -1392,30 +1276,107 @@ function getTotalDamageColor(total) {
 
 
 const damageTypeEmojis = {
-    "ac": "🧪", // Acid
-    "bl": "🔨", // Bludgeoning
-    "co": "❄️", // Cold
-    "fi": "🔥", // Fire
-    "fo": "💥", // Force
-    "li": "⚡", // Lightning
-    "ne": "💀", // Necrotic
-    "pi": "🗡️", // Piercing
-    "po": "☠️", // Poison
-    "ps": "🧠", // Psychic
-    "ra": "🌟", // Radiant
-    "sl": "⚔️", // Slashing
-    "th": "🌩️"  // Thunder
+    "ac": "🧪",
+    "bl": "🔨",
+    "co": "❄️",
+    "fi": "🔥",
+    "fo": "💥",
+    "li": "⚡",
+    "ne": "💀",
+    "pi": "🗡️",
+    "po": "☠️",
+    "ps": "🧠",
+    "ra": "🌟",
+    "sl": "⚔️",
+    "th": "🌩️" 
 };
 
 function textToEmoji(text) {
-    for (const [prefix, emoji] of Object.entries(damageTypeEmojis)) {
-        const regex = new RegExp(`${prefix}(?=[^A-Za-z]|$)`, 'gi');
-        text = text.replace(regex, emoji);
+    const stopKeywords = ['save', 'load', 'delete'];
+    const resumeKeywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm'];
+    const entries = Object.entries(damageTypeEmojis);
+    let result = '';
+    let state = 'replace';
+    let i = 0;
+    while (i < text.length) {
+        if (state === 'replace') {
+            const stop = stopKeywords.find(kw => text.startsWith(kw, i));
+            if (stop) {
+                result += stop;
+                i += stop.length;
+                state = 'no-replace';
+                continue;
+            }
+            let replaced = false;
+            for (const [prefix, emoji] of entries) {
+                if (text.startsWith(prefix, i)) {
+                    result += emoji;
+                    i += prefix.length;
+                    replaced = true;
+                    break;
+                }
+            }
+            if (replaced) continue;
+            result += text[i++];
+        } else {
+            const resume = resumeKeywords.find(kw => text.startsWith(kw, i));
+            if (resume) {
+                result += resume;
+                i += resume.length;
+                state = 'replace';
+                continue;
+            }
+            result += text[i++];
+        }
     }
-    return text;
+    return result;
 }
 
 function textToEmojiGetCursor(text, cursorPos) {
+    const stopKeywords = ['save', 'load', 'delete'];
+    const resumeKeywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm'];
+    const entries = Object.entries(damageTypeEmojis);
+    let result = '';
+    let diff = 0;
+    let state = 'replace';
+    let i = 0;
+    while (i < text.length) {
+        if (state === 'replace') {
+            const stop = stopKeywords.find(kw => text.startsWith(kw, i));
+            if (stop) {
+                result += stop;
+                i += stop.length;
+                state = 'no-replace';
+                continue;
+            }
+            let replaced = false;
+            for (const [prefix, emoji] of entries) {
+                if (text.startsWith(prefix, i)) {
+                    result += emoji;
+                    if (i < cursorPos) diff += emoji.length - prefix.length;
+                    i += prefix.length;
+                    replaced = true;
+                    break;
+                }
+            }
+            if (replaced) continue;
+            result += text[i++];
+        } else {
+            const resume = resumeKeywords.find(kw => text.startsWith(kw, i));
+            if (resume) {
+                result += resume;
+                i += resume.length;
+                state = 'replace';
+                continue;
+            }
+            result += text[i++];
+        }
+    }
+    return { text: result, cursorPos: cursorPos + diff };
+}
+
+
+function textToEmojiGetCursorOld(text, cursorPos) {
     let diff = 0;
 
     for (const [prefix, emoji] of Object.entries(damageTypeEmojis)) {
@@ -1438,7 +1399,6 @@ function emojiToText(text) {
         emojiToPrefix[emoji] = prefix;
     }
     for (const [emoji, prefix] of Object.entries(emojiToPrefix)) {
-        // Use split and join to handle multiple instances of the same emoji
         text = text.split(emoji).join(prefix);
     }
     return text;
