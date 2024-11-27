@@ -18,7 +18,7 @@
     "@3d-dice/theme-rock": "^0.2.0",
     "@3d-dice/theme-rust": "^0.2.0",
     "@3d-dice/theme-smooth": "^0.2.1",
-    "@3d-dice/dice-box-deterministic": "file:3d-dice-dice-box-deterministic-1.1.4.tgz",
+    "@3d-dice/dice-box-deterministic": "file:./3d-dice-dice-box-deterministic-1.1.4.tgz",
     "@owlbear-rodeo/sdk": "^3.0.0"
   }
 }
