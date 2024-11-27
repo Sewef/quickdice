@@ -1,13 +1,7 @@
-// diceRoller.js
 import OBR from "@owlbear-rodeo/sdk";
-
-import DiceBox from "@3d-dice/dice-box";
-
-let cachedUserId = null;
+import DiceBox from "@3d-dice/dice-box-deterministic";
 
 let isRolling = false;
-
-let speed = 1;
 
 function rollDice(number, diceType) {
     if (!Number.isInteger(number) || number < 1) {
@@ -27,7 +21,6 @@ function rollDice(number, diceType) {
     }
     return { total, individualRolls };
 }
-
 
 function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
     const card = document.createElement('div');
@@ -136,20 +129,31 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
     return card;
 }
 
-
 function time_config(t) {
+    t = (1 - t / 100) * 0.5 + t / 100 * (2 - 0.5)
+
+    // gravity: 1.6,
+    // mass: 1,
+    // friction: 0.6,
+    // restitution: 0.1,
+    // angularDamping: 0.4,
+    // linearDamping: 0.4,
+    // spinForce: 4,
+    // throwForce: 4,
+    // startingHeight: 10,
+    // settleTimeout: 4500,
+    // scale: 7,
     const originalConfig = {
         gravity: 1.6,
         mass: 1,
-        friction: 0.7,
+        friction: 0.6,
         restitution: 0.3,
-        angularDamping: 0.3,
+        angularDamping: 0.2,
         linearDamping: 0.3,
-        spinForce: 6,
-        throwForce: 6,
+        spinForce: 5,
+        throwForce: 4,
         startingHeight: 10,
         settleTimeout: 4000,
-        delay: 10,
         scale: 7,
         lightIntensity: 1,
         enableShadows: true,
@@ -187,7 +191,7 @@ function createDiceBox() {
         diceCanvas.remove();
     }
 
-    var diceBox = new DiceBox(time_config(0.35 + parseInt(document.querySelector("#physicalSlider").value) / 100 * (2 - 0.35)));
+    var diceBox = new DiceBox(time_config(parseInt(document.querySelector("#physicalSlider").value)));
 
     const canvas = document.getElementById('dice-canvas');
     canvas.style.pointerEvents = "none";
@@ -211,21 +215,80 @@ function createDiceBox() {
         document.getElementById('container').onclick = () => {
             if (!isRolling) {
                 diceBox.clear()
+                isRolling = false;
             }
         };
-        console.log('DiceBox initialized');
             diceBox.onRollComplete = (result) => {
-            isRolling = false
+            isRolling = false;
         };
         diceBox.onBeforeRoll = (result) => {
-            isRolling = true
+            isRolling = true;
         };
     });
 
     return diceBox
 }
 
-// diceRoller.js
+async function rollSharedDice(id, dimensions, config, diceArray, seed, simSpeed) {
+    OBR.broadcast.sendMessage("quickdice.rollPopoverDice", {
+        'id': id, 
+        'dimensions': dimensions, 
+        'config': config,
+        'diceArray': diceArray,
+        'seed': seed,
+        'simSpeed': simSpeed
+    }, {destination: 'REMOTE'}).catch(error => {
+        console.error("Failed to send broadcast message:", error);
+    });
+}
+
+async function rollPopoverDice(id, dimensions, config, diceArray, seed, simSpeed) {
+    try {
+        // Serialize each object to a JSON string
+        const serializedId = id;
+        const serializedDimensions = JSON.stringify(dimensions);
+        const serializedConfig = JSON.stringify(config);
+        const serializedDiceArray = JSON.stringify(diceArray);
+        const serializedSeed = JSON.stringify(seed);
+        const serializedSimSpeed = JSON.stringify(simSpeed);
+
+        // Encode each serialized string for safe URL inclusion
+        const encodedId = encodeURIComponent(serializedId);
+        const encodedDimensions = encodeURIComponent(serializedDimensions);
+        const encodedConfig = encodeURIComponent(serializedConfig);
+        const encodedDiceArray = encodeURIComponent(serializedDiceArray);
+        const encodedSeed = encodeURIComponent(serializedSeed);
+        const encodedSimSpeed = encodeURIComponent(serializedSimSpeed);
+
+        // Construct the popover URL with query parameters
+        const popoverURL = `/popover.html?id=${encodedId}&dimensions=${encodedDimensions}&config=${encodedConfig}&diceArray=${encodedDiceArray}&seed=${encodedSeed}&simSpeed=${encodedSimSpeed}`;
+
+        // Open the popover with the constructed URL
+        await OBR.popover.open({
+            id: id,
+            url: popoverURL,
+            width: dimensions.width, // 60% of the screen width
+            height: dimensions.height, // 60% of the screen height
+            anchorOrigin: {
+                horizontal: "RIGHT",
+                vertical: "BOTTOM",
+            },
+            transformOrigin: {
+                horizontal: "CENTER",
+                vertical: "CENTER",
+            },
+            hidePaper: true, // Makes the background transparent
+            disableClickAway: false,
+            marginThreshold: 70,
+        });
+
+    } catch (error) {
+        console.error("Error opening popover:", error);
+    }
+}
+
+let isHidden;
+let isPhysical;
 export function setupDiceRoller(userId) {
 
     updateCommandsList()
@@ -259,7 +322,9 @@ export function setupDiceRoller(userId) {
     rollButton.addEventListener('click', async () => {
 
         const userInput = emojiToText(attackCommandInput.value).trim();
-        const { attackParams, cleanedUserInput } = parseInput(userInput);
+        const parseResults = parseInput(userInput);
+        const cleanedUserInput = parseResults?.cleanedUserInput;
+        const attackParams = parseResults?.attackParams;
         if (!attackParams) {
             attackCommandInput.classList.add('input-error');
             setTimeout(() => {
@@ -268,10 +333,10 @@ export function setupDiceRoller(userId) {
 
             return;
         }
-        const isHidden = hiddenCheckbox.checked;
-        const isPhysical = physicalCheckbox.checked;
+        isHidden = hiddenCheckbox.checked;
+        isPhysical = physicalCheckbox.checked;
 
-        const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox, isPhysical);
+        const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox, isPhysical, isHidden);
         const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
         if (historyEntry.textContent.length > 0) {
             historyContainer.prepend(historyEntry);
@@ -322,6 +387,11 @@ export function setupDiceRoller(userId) {
         }
     });
 
+    OBR.broadcast.onMessage("quickdice.rollPopoverDice", (event) => {
+        const { id, dimensions, config, diceArray, seed, simSpeed } = event.data;
+        rollPopoverDice(id, dimensions, config, diceArray, seed, simSpeed);
+    });
+
     OBR.broadcast.onMessage("quickdice.diceResults", (event) => {
         const { command, attackRolls, damageResults, hpResult } = event.data;
 
@@ -355,6 +425,7 @@ export function setupDiceRoller(userId) {
         if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             if (!isRolling || true) {
                 diceBox.clear();
+                isRolling = false;
             }
         }
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
@@ -374,11 +445,6 @@ export function setupDiceRoller(userId) {
     physicalSlider.addEventListener("mouseup", () => {
         if (!isRolling) {
             diceBox = createDiceBox();
-        }
-        else {
-            diceBox.onRollComplete = () => {
-                diceBox = createDiceBox();
-            };
         }
     });
     physicalSlider.addEventListener("touchend", () => {
@@ -418,7 +484,6 @@ function updateCommandsList() {
         });
     }
 }
-
 
 function parseDamageExpression(damageExpr) {
     const damageInstances = damageExpr.split('+').map(instance => instance.trim()).filter(instance => instance.length > 0);
@@ -461,8 +526,6 @@ function parseDamageExpression(damageExpr) {
     return components;
 }
 
-
-
 function getThemeAndColor(damageType) {
     const mapping = {
         'ac': { theme: 'blue-green-metal' },            
@@ -484,8 +547,7 @@ function getThemeAndColor(damageType) {
     return mapping[key] || { theme: 'default', themeColor: '#ffffff' };
 }
 
-async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
-
+async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, isHidden, wait = false) {
     if (!physicalDiceRoll) {
         diceList.forEach(attackDice => {
             attackDice.dice.forEach(dice => {
@@ -496,6 +558,10 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
             });
         });
     } else {
+        if (wait) {
+            await new Promise(resolve => setTimeout(resolve, 1000));
+        }
+
         const diceArray = [];
         const diceMapping = [];
 
@@ -522,7 +588,21 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
         });
 
         try {
-            const results = await diceBox.roll(diceArray);
+            const sampler = () => Math.round(99999 * Math.random());
+            const seed = {a: sampler(), b: sampler(), c: sampler(), d: sampler()};
+            const simSpeed = 20;
+            if (!isHidden) {
+                rollSharedDice("myId-" + Math.round(Math.random()*100000).toString(), 
+                            {
+                                width: document.getElementById("dice-canvas").width,
+                                height: document.getElementById("dice-canvas").height
+                            },
+                            time_config(parseInt(document.querySelector("#physicalSlider").value)), 
+                            diceArray, 
+                            seed, 
+                            simSpeed)
+            }
+            const results = await diceBox.roll(diceArray, {}, seed, simSpeed);
             const groupTotals = {};
             results.forEach((dieResult) => {
                 const { groupId, value } = dieResult;
@@ -543,11 +623,7 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox) {
     return diceList;
 }
 
-
-
-
-
-async function performAttack(attackParams, diceBox, isPhysical) {
+async function performAttack(attackParams, diceBox, isPhysical, isHidden) {
     let attackRolls = [];
     let damageResults = [];
     let hpResult = null;
@@ -606,7 +682,7 @@ async function performAttack(attackParams, diceBox, isPhysical) {
         }
     }
     if (!automaticHit && diceRolls.attackDice.length > 0) {
-        diceRolls.attackDice = await executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox);
+        diceRolls.attackDice = await executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox, isHidden);
     }
 
     for (let i = 0; i < attackParams.num_attacks; i++) {
@@ -719,7 +795,7 @@ async function performAttack(attackParams, diceBox, isPhysical) {
         }
     }
     if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0)) {
-        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox);
+        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox, isHidden, true);
     }
     diceRolls.damageDice.forEach(damageDice => {
         let damageInstances = [];
@@ -795,9 +871,6 @@ async function performAttack(attackParams, diceBox, isPhysical) {
     }
     return { attackRolls, damageResults, hpResult };
 }
-
-
-
 
 function parseInput(userInput) {
     const strippedInput = userInput.replace(/\s+/g, '').toLowerCase();
@@ -1274,7 +1347,6 @@ function getTotalDamageColor(total) {
     return 'damage-default';
 }
 
-
 const damageTypeEmojis = {
     "ac": "🧪",
     "bl": "🔨",
@@ -1373,24 +1445,6 @@ function textToEmojiGetCursor(text, cursorPos) {
         }
     }
     return { text: result, cursorPos: cursorPos + diff };
-}
-
-
-function textToEmojiGetCursorOld(text, cursorPos) {
-    let diff = 0;
-
-    for (const [prefix, emoji] of Object.entries(damageTypeEmojis)) {
-        const regex = new RegExp(`${prefix}(?=[^A-Za-z]|$)`, 'gi');
-        text = text.replace(regex, function(match, offset) {
-            if (offset < cursorPos) {
-                diff += emoji.length - match.length;
-            }
-            return emoji;
-        });
-    }
-    const newCursorPos = cursorPos + diff;
-
-    return { text, cursorPos: newCursorPos };
 }
 
 function emojiToText(text) {

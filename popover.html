@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dice Roll Popover</title>
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: transparent; /* Transparent background */
+        }
+
+        #container {
+            position: relative;
+            width: 100%;
+            margin: 0 auto;
+            background-color: transparent; /* Transparent background */
+        }
+
+        /* Allow click-through on the canvas */
+        /* canvas {
+            pointer-events: none;
+        } */
+    </style>
+</head>
+<body>
+    <div id="container">
+        <!-- The dice canvas will be appended here -->
+    </div>
+
+    <!-- Include the popover script -->
+    <script type="module" src="/src/popover.js"></script>
+</body>
+</html>

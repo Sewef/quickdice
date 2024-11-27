@@ -12,13 +12,13 @@
     "vite": "^5.4.10"
   },
   "dependencies": {
-    "@3d-dice/dice-box": "^1.1.4",
     "@3d-dice/theme-blue-green-metal": "^0.2.0",
     "@3d-dice/theme-dice-of-rolling": "^0.2.1",
     "@3d-dice/theme-gemstone": "^0.2.0",
     "@3d-dice/theme-rock": "^0.2.0",
     "@3d-dice/theme-rust": "^0.2.0",
     "@3d-dice/theme-smooth": "^0.2.1",
+    "@3d-dice/dice-box-deterministic": "file:3d-dice-dice-box-deterministic-1.1.4.tgz",
     "@owlbear-rodeo/sdk": "^3.0.0"
   }
 }
