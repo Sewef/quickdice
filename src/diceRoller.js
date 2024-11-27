@@ -289,7 +289,8 @@ async function rollPopoverDice(id, dimensions, config, diceArray, seed, simSpeed
         const popoverURL = `/popover.html?id=${encodedId}&dimensions=${encodedDimensions}&config=${encodedConfig}&diceArray=${encodedDiceArray}&seed=${encodedSeed}&simSpeed=${encodedSimSpeed}`;
 
         // Open the popover with the constructed URL
-        await OBR.popover.open({
+        console.log("open popover")
+        OBR.popover.open({
             id: id,
             url: popoverURL,
             width: dimensions.width, // 60% of the screen width
