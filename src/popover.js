@@ -3,6 +3,8 @@ import DiceBox from "@3d-dice/dice-box-deterministic";
 
 // Wait for OBR to be ready
 OBR.onReady(() => {
+    console.log("opening popover");
+
     // Function to get query parameters
     function getQueryParams() {
         const params = {};
