@@ -3,7 +3,7 @@ import DiceBox from "@3d-dice/dice-box-deterministic";
 
 // Wait for OBR to be ready
 OBR.onReady(() => {
-    console.log("opening popover");
+    console.log("opened popover");
 
     // Function to get query parameters
     function getQueryParams() {
@@ -43,8 +43,9 @@ OBR.onReady(() => {
         console.error("Failed to create DiceBox");
         return;
     }
-
+    console.log("initializing dicebox")
     diceBox.init().then(() => {
+        console.log("dicebox initialized")
         diceBox.roll(diceArray, {}, seed, simSpeed);
 
         // Close after 8 seconds if still rolling
@@ -59,6 +60,8 @@ OBR.onReady(() => {
             isRolling = false;
             setTimeout(() => closePopover(id), 2000);
         };
+    }).catch((error) => {
+        console.error("Error initializing diceBox", error)
     });
 
     // When user clicks on the popover
