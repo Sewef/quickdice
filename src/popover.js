@@ -32,7 +32,7 @@ OBR.onReady(() => {
 
     // Modify config to set container and unique canvas id
     //config.assetPath = '/assets/dice-box'
-    config.container = '#container';
+    config.container = '#popoverContainer';
     config.id = 'dice-canvas-' + id; // Ensure uniqueness
     let isRolling = true;
 
