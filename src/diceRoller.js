@@ -221,7 +221,7 @@ function createDiceBox() {
                 isRolling = false;
             }
         };
-            diceBox.onRollComplete = (result) => {
+        diceBox.onRollComplete = (result) => {
             isRolling = false;
         };
         diceBox.onBeforeRoll = (result) => {
@@ -233,16 +233,15 @@ function createDiceBox() {
 }
 
 async function closePopover(popoverId) {
-    if (!isHidden) {
-        OBR.popover.close(popoverId).catch((error) => {
-            console.error("Error closing popover:", error);
-        });
-    }
+    OBR.popover.close(popoverId).catch((error) => {
+        console.error("Error closing popover:", error);
+    });
 }
 
-function clearSharedDice(diceBox) {
+function clearSharedDice(max = 100000) {
+    let i = 0;
     if (Array.isArray(popoverIds)) {
-        while (popoverIds.length > 0) {
+        while (popoverIds.length > 0 && i < max) {
             const popoverId = popoverIds.shift();
             OBR.broadcast.sendMessage("quickdice.closePopover", {
                 'id': popoverId
@@ -250,13 +249,14 @@ function clearSharedDice(diceBox) {
             .catch(error => {
                 console.error(`Failed to send closePopover message for ID ${popoverId}:`, error);
             });
+            i++;
         }
     }
 }
 
-async function rollSharedDice(id, dimensions, config, diceArray, seed, simSpeed) {
+async function rollSharedDice(popoverId, dimensions, config, diceArray, seed, simSpeed) {
     OBR.broadcast.sendMessage("quickdice.rollPopoverDice", {
-        'id': id, 
+        'id': popoverId, 
         'dimensions': dimensions, 
         'config': config,
         'diceArray': diceArray,
@@ -265,6 +265,14 @@ async function rollSharedDice(id, dimensions, config, diceArray, seed, simSpeed)
     }, {destination: 'REMOTE'}).catch(error => {
         console.error("Failed to send broadcast message:", error);
     });
+    setTimeout(() => {
+        OBR.broadcast.sendMessage("quickdice.closePopover", {
+            'id': popoverId
+        }, { destination: 'REMOTE' })
+        .catch(error => {
+            console.error(`Failed to send closePopover message for ID ${popoverId}:`, error);
+        });
+    }, 6000);
 }
 
 async function rollPopoverDice(id, dimensions, config, diceArray, seed, simSpeed) {
@@ -289,7 +297,6 @@ async function rollPopoverDice(id, dimensions, config, diceArray, seed, simSpeed
         const popoverURL = `/popover.html?id=${encodedId}&dimensions=${encodedDimensions}&config=${encodedConfig}&diceArray=${encodedDiceArray}&seed=${encodedSeed}&simSpeed=${encodedSimSpeed}`;
 
         // Open the popover with the constructed URL
-        console.log("open popover")
         OBR.popover.open({
             id: id,
             url: popoverURL,
@@ -346,6 +353,8 @@ export function setupDiceRoller(userId) {
     const physicalCheckbox = document.getElementById('physicalRoll');
 
     rollButton.addEventListener('click', async () => {
+
+        clearSharedDice();
 
         const userInput = emojiToText(attackCommandInput.value).trim();
         const parseResults = parseInput(userInput);
@@ -457,7 +466,7 @@ export function setupDiceRoller(userId) {
             diceBox.clear();
             isCleared = true;
             isRolling = false;
-            clearSharedDice(diceBox);
+            clearSharedDice();
         }
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
             event.preventDefault(); 
@@ -591,7 +600,7 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, isHidden, w
         });
     } else {
         if (wait) {
-            await new Promise(resolve => setTimeout(resolve, 1000));
+            await new Promise(resolve => setTimeout(resolve, 500));
         }
 
         const diceArray = [];
@@ -716,12 +725,8 @@ async function performAttack(attackParams, diceBox, isPhysical, isHidden) {
             diceRolls.attackDice.push(attackDice);
         }
     }
-    if (!automaticHit && diceRolls.attackDice.length > 0) {
 
-        if (!isHidden) {
-            clearSharedDice(diceBox);
-        }
-        
+    if (!automaticHit && diceRolls.attackDice.length > 0) {
         diceRolls.attackDice = await executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox, isHidden);
     }
 
