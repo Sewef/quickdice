@@ -47,7 +47,7 @@ OBR.onReady(() => {
     diceBox.init().then(() => {
         console.log("dicebox initialized")
         diceBox.roll(diceArray, {}, seed, simSpeed);
-
+        document.querySelector(config.container).innerHTML = "helloooooo"
         // Close after 8 seconds if still rolling
         setTimeout(() => {
             if (isRolling) {
