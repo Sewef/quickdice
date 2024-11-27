@@ -53,7 +53,7 @@ OBR.onReady(() => {
             if (isRolling) {
                 closePopover(id);
             }
-        }, config.settleTimeout + 2000);
+        }, 5*config.settleTimeout + 2000);
 
         // When roll is finished
         diceBox.onRollComplete = (result) => {
