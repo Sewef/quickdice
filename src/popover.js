@@ -50,12 +50,12 @@ OBR.onReady(() => {
             if (isRolling) {
                 closePopover(id);
             }
-        }, config.settleTimeout + 3000);
+        }, config.settleTimeout + 2000);
 
         // When roll is finished
         diceBox.onRollComplete = (result) => {
             isRolling = false;
-            setTimeout(() => closePopover(id), 3000);
+            setTimeout(() => closePopover(id), 2000);
         };
     });
 
@@ -82,7 +82,6 @@ OBR.onReady(() => {
         }
 
         const canvas = document.getElementById(config.id);
-        console.log("canvas", canvas)
         canvas.style.pointerEvents = "none"; // Allow click-through
         canvas.style.position = 'absolute';
         canvas.style.top = '0';
