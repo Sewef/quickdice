@@ -55,6 +55,9 @@ class QueueProcessor {
         if (this.queue.length === 0) {
             this.processing = false;
             this.currentItem = null;
+            if (this.postProcessFunction) {
+                this.postProcessFunction(this.currentItem);
+            }
             return;
         }
         const data = this.queue[0];
@@ -83,9 +86,7 @@ class QueueProcessor {
             if (this.cancelFunction) {
                 this.cancelFunction(this.currentItem);
                 this.processing = false;
-                if (this.postProcessFunction) {
-                    this.postProcessFunction(this.currentItem);
-                }
+                this.queue.shift();
                 this.startProcessing();
             }
             return true;
@@ -154,70 +155,6 @@ const defaultConfig = {
     preloadThemes: ['gemstone', 'dice-of-rolling', 'smooth', 'rock', 'rust', 'blue-green-metal'],
     autoResize: false
 };
-  
-const rollQueueProcessor = new QueueProcessor(rollDice, clearDice, showPopover, hidePopover, printQueue, 2000);
-let diceBox;
-let canvasWidth = 100;
-let canvasHeight = 100;
-let displayWidth = 100;
-let displayHeight = 100;
-
-async function resizeCanvas() {
-
-    diceBox.setDimensions(canvasWidth, canvasHeight);
-
-    const viewportWidth = window.innerWidth;
-    const viewportHeight = window.innerHeight;
-
-    // Calculate the scaling factor to maintain aspect ratio
-    const widthRatio = viewportWidth / canvasWidth;
-    const heightRatio = viewportHeight / canvasHeight;
-    const scale = Math.min(1, 0.9 * widthRatio, 0.9 * heightRatio); // Ensure we don't scale up beyond original size
-
-    // Compute the display dimensions
-    displayWidth = Math.floor(canvasWidth * scale);
-    displayHeight = Math.floor(canvasHeight * scale);
-
-    await OBR.popover.setWidth("quickdice-popover", displayWidth);
-    await OBR.popover.setHeight("quickdice-popover", displayHeight);
-
-    const canvas = document.getElementById('popover-dice-canvas');
-    const container = document.getElementById('popover-container');
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.zIndex = '10';
-    canvas.style.width = displayWidth + 'px';
-    canvas.style.height = displayHeight + 'px';
-    container.style.width = displayWidth + 'px';
-    container.style.height = displayHeight + 'px';
-}
-
-async function createDiceBox() {
-    const diceCanvas = document.getElementById('popover-dice-canvas');
-    if (diceCanvas) {
-        diceCanvas.remove();
-    }
-
-    diceBox = new DiceBox({... defaultConfig, ... { canvasWidth: canvasWidth, canvasHeight: canvasHeight }});
-
-    await diceBox.init();
-    await resizeCanvas();
-
-    return diceBox;
-}
-
-async function rollDice(data) {
-    const { id, playerName, width, height, diceArray, config, seed, simSpeed } = data;
-    canvasWidth = width
-    canvasHeight = height;
-    resizeCanvas();
-    return diceBox.roll(diceArray, { ...defaultConfig, ...config }, seed, simSpeed);
-} 
-
-function clearDice() {
-    diceBox.clear();
-}
 
 function printQueue() {
     const queueDisplay = document.getElementById('queue-display');
@@ -259,6 +196,73 @@ function printQueue() {
     queueDisplay.appendChild(fragment);
 }
 
+  
+const rollQueueProcessor = new QueueProcessor(rollDice, clearDice, showPopover, hidePopover, printQueue, 2000);
+let diceBox;
+let canvasWidth = 100;
+let canvasHeight = 100;
+let viewportWidth = 1920;
+let viewportHeight = 1080;
+let displayWidth = 100;
+let displayHeight = 100;
+
+async function resizeCanvas() {
+
+    diceBox.setDimensions(canvasWidth, canvasHeight);
+
+    const widthRatio = viewportWidth / canvasWidth;
+    const heightRatio = viewportHeight / canvasHeight;
+    const scale = Math.min(1, 0.9 * widthRatio, 0.9 * heightRatio); // Ensure we don't scale up beyond original size
+
+    // Compute the display dimensions
+    displayWidth = Math.floor(canvasWidth * scale);
+    displayHeight = Math.floor(canvasHeight * scale);
+
+    //displayWidth = canvasWidth;
+    //displayHeight = canvasHeight;
+
+    let prom1 = OBR.popover.setWidth("quickdice-popover", displayWidth);
+    let prom2 = OBR.popover.setHeight("quickdice-popover", displayHeight);
+    await Promise.all([prom1, prom2]);
+
+    const canvas = document.getElementById('popover-dice-canvas');
+    const container = document.getElementById('popover-container');
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.zIndex = '10';
+    canvas.style.width = displayWidth + 'px';
+    canvas.style.height = displayHeight + 'px';
+    container.style.width = displayWidth + 'px';
+    container.style.height = displayHeight + 'px';
+}
+
+async function createDiceBox() {
+    const diceCanvas = document.getElementById('popover-dice-canvas');
+    if (diceCanvas) {
+        diceCanvas.remove();
+    }
+
+    diceBox = new DiceBox({... defaultConfig, ... { canvasWidth: canvasWidth, canvasHeight: canvasHeight }});
+
+    await diceBox.init();
+    await resizeCanvas();
+
+    return diceBox;
+}
+
+async function rollDice(data) {
+    const { id, playerName, width, height, diceArray, config, seed, simSpeed } = data;
+    canvasWidth = width
+    canvasHeight = height;
+    await resizeCanvas();
+    return diceBox.roll(diceArray, { ...defaultConfig, ...config }, seed, simSpeed);
+} 
+
+function clearDice() {
+    diceBox.clear();
+}
+
 function showPopover() {
     printQueue();
     document.body.style.display = 'block';
@@ -268,8 +272,9 @@ function showPopover() {
 async function hidePopover() {
     document.body.style.display = 'none';
     document.body.style.pointerEvents = 'none';
-    await OBR.popover.setWidth("quickdice-popover", 1);
-    await OBR.popover.setHeight("quickdice-popover", 1);
+    let prom1 = OBR.popover.setWidth("quickdice-popover", 2);
+    let prom2 = OBR.popover.setHeight("quickdice-popover", 2);
+    await Promise.all([prom1, prom2]);
 }
 
 OBR.onReady(async () => {
@@ -292,10 +297,9 @@ OBR.onReady(async () => {
     OBR.broadcast.onMessage("quickdice.popoverRemove", async (event) => {
         rollQueueProcessor.remove(event.data.id);
     });
-    OBR.broadcast.onMessage("quickdice.popoverResize", async (event) => {
-        canvasWidth = event.data.width;
-        canvasHeight = event.data.height;
-        resizeCanvas();
+    OBR.broadcast.onMessage("quickdice.popoverViewport", (event) => {
+        viewportWidth = event.data.viewportWidth;
+        viewportHeight = event.data.viewportHeight;
     });
 
 });

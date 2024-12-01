@@ -144,15 +144,6 @@ function executeSharedRoll(diceArray, config, seed, simSpeed) {
     });
 }
 
-function forcePopoverResize() {
-    OBR.broadcast.sendMessage("quickdice.popoverResize", {
-        'width': canvasWidth, 
-        'height': canvasHeight,
-    }, {destination: 'REMOTE'}).catch(error => {
-        console.error("Failed to send broadcast message:", error);
-    });
-}
-
 function openPopover() {
     const encodedWidth = encodeURIComponent(JSON.stringify(canvasWidth));
     const encodedHeight = encodeURIComponent(JSON.stringify(canvasHeight));
@@ -161,10 +152,10 @@ function openPopover() {
 
     try {
         return OBR.popover.open({
-            id: "quickdice-popvoer",
+            id: "quickdice-popover",
             url: popoverURL,
-            width: canvasWidth,
-            height: canvasHeight,
+            width: 2,
+            height: 2,
             anchorOrigin: {
                 horizontal: "RIGHT",
                 vertical: "BOTTOM",
@@ -175,7 +166,7 @@ function openPopover() {
             },
             hidePaper: true,
             disableClickAway: true,
-            marginThreshold: 50,
+            marginThreshold: 60,
         });
     } catch (error) {
         console.error("Error opening popover:", error);
@@ -184,7 +175,7 @@ function openPopover() {
 
 function closePopover() {
     try {
-        return OBR.popover.close("quickdice-popvoer");
+        return OBR.popover.close("quickdice-popover");
     } catch (error) {
         console.error("Error closing popover:", error);
     }
@@ -196,6 +187,7 @@ async function resizeCanvas(diceBox) {
     if (!canvasWidth || rect.width != canvasWidth || !canvasHeight ||rect.height != canvasHeight) {
         canvasWidth = rect.width;
         canvasHeight = rect.height;
+        clearSharedRoll();
         await diceBox.setDimensions(canvasWidth, canvasHeight);
     }
 }
@@ -239,9 +231,15 @@ async function createDiceBox() {
 
     await diceBox.init();
     
-    let debouncedResizeCanvas = debounce(() => resizeCanvas(diceBox));
-    debouncedResizeCanvas();
-    window.addEventListener('resize', () => debouncedResizeCanvas());
+    let debouncedResizeHandler = debounce(async () => {
+        await OBR.broadcast.sendMessage("quickdice.popoverViewport", {
+            'viewportWidth': window.innerWidth,
+            'viewportHeight': window.innerHeight
+        }, { destination: 'LOCAL' });
+        resizeCanvas(diceBox);
+    });
+    debouncedResizeHandler();
+    window.addEventListener('resize', () => debouncedResizeHandler());
 
     openPopover();
 
