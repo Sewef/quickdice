@@ -201,8 +201,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
 
   initializeView();
 
-  OBR.onReady(() => OBR.player.getId().then((userId) => {
-    setupDiceRoller(userId);
+  OBR.onReady(() => OBR.player.getName().then((playerName) => {
+    setupDiceRoller(playerName);
   }));
 
 

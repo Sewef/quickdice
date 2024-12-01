@@ -4,29 +4,59 @@
     <meta charset="UTF-8">
     <title>Dice Roll Popover</title>
     <style>
-        html, body {
+        html {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background-color: transparent; /* Transparent background */
+            font-family: Arial, sans-serif;
+        }
+
+        body {
             margin: 0;
             padding: 0;
             overflow: hidden;
             background-color: transparent; /* Transparent background */
         }
 
-        #container {
+        #popover-container {
             position: relative;
-            width: 100%;
             margin: 0 auto;
-            background-color: rgba(255, 0, 0, 0.205); /* Transparent background */
+            background-color: rgba(44, 62, 80, 0.3);
         }
 
-        /* Allow click-through on the canvas */
-        /* canvas {
-            pointer-events: none;
-        } */
+        #queue-display {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 40px; /* Set desired height */
+            background-color: rgba(52, 73, 94, 0.5);
+            color: white; /* White font */
+            display: flex;
+            align-items: center;
+            overflow: hidden; /* Hide overflow */
+            white-space: nowrap; /* Prevent wrapping */
+            padding-top: 8px; /* Optional padding */
+            padding-bottom: 8px; /* Optional padding */
+            z-index: 20; /* Ensure it overlays other content */
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
+        }
+
+        .queue-item {
+            margin-left: 10px; /* Space between items */
+        }
+
+        .current-item {
+            font-weight: bold; /* Bold for current item */
+        }
     </style>
 </head>
 <body>
-    <div id="popoverContainer">
-        <!-- The dice canvas will be appended here -->
+    <div id="popover-container">
+        <div id="queue-display">
+        </div>
     </div>
 
     <!-- Include the popover script -->

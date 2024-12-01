@@ -1,9 +1,45 @@
 import OBR from "@owlbear-rodeo/sdk";
 import DiceBox from "@3d-dice/dice-box-deterministic";
 
+const uuid = () => Math.random().toString().substring(2) + Math.random().toString().substring(2)
+
+let isHidden;
+let isPhysical;
 let isRolling = false;
-let popoverIds = [];
 let isCleared = true;
+let rollId;
+let playerName = "default";
+let canvasWidth;
+let canvasHeight;
+
+/**
+ * Debounce functions for better performance
+ * (c) 2021 Chris Ferdinandi, MIT License, https://gomakethings.com
+ * @param  {Function} fn The function to debounce
+ */
+export const debounce = (fn) => {
+
+	// Setup a timer
+	let timeout;
+
+	// Return a function to run debounced
+	return function () {
+
+		// Setup the arguments
+		let context = this;
+		let args = arguments;
+
+		// If there's a timer, cancel it
+		if (timeout) {
+			window.cancelAnimationFrame(timeout);
+		}
+
+		// Setup the new requestAnimationFrame()
+		timeout = window.requestAnimationFrame(function () {
+			fn.apply(context, args);
+		});
+	};
+}
 
 function rollDice(number, diceType) {
     if (!Number.isInteger(number) || number < 1) {
@@ -22,6 +58,209 @@ function rollDice(number, diceType) {
         total += roll;
     }
     return { total, individualRolls };
+}
+
+function getSpeedFromSlider() {
+    const t = parseInt(document.querySelector("#physicalSlider").value);
+    return (1 - t / 100) * 0.5 + t / 100 * (2 - 0.5)
+}
+function time_config() {
+    const t = getSpeedFromSlider();
+
+    // gravity: 1.6,
+    // mass: 1,
+    // friction: 0.6,
+    // restitution: 0.1,
+    // angularDamping: 0.4,
+    // linearDamping: 0.4,
+    // spinForce: 4,
+    // throwForce: 4,
+    // startingHeight: 10,
+    // settleTimeout: 4500,
+    // scale: 7,
+    const defaultConfig = {
+        assetPath: '/assets/dice-box/',
+        container: '#container',
+        id: 'dice-canvas',
+        gravity: 1.6,
+        mass: 1,
+        friction: 0.5,
+        restitution: 0.3,
+        angularDamping: 0.2,
+        linearDamping: 0.3,
+        spinForce: 5,
+        throwForce: 4,
+        startingHeight: 10,
+        settleTimeout: 4000,
+        scale: 7,
+        lightIntensity: 1,
+        enableShadows: true,
+        shadowTransparency: 0.8,
+        theme: 'smooth',
+        themeColor: '#eeeeee',
+        preloadThemes: ['gemstone', 'dice-of-rolling', 'smooth', 'rock', 'rust', 'blue-green-metal'],
+        canvasWidth: 10,
+        canvasHeight: 10,
+        autoResize: false
+    };
+
+    return {... defaultConfig, ...{
+            gravity: defaultConfig.gravity / (t * t),
+            mass: defaultConfig.mass,
+            friction: defaultConfig.friction,
+            restitution: defaultConfig.restitution,
+            angularDamping: defaultConfig.angularDamping / t,
+            linearDamping: defaultConfig.linearDamping / t,
+            spinForce: defaultConfig.spinForce / t,
+            throwForce: defaultConfig.throwForce / t,
+            startingHeight: defaultConfig.startingHeight,
+            settleTimeout: defaultConfig.settleTimeout * t,
+            delay: defaultConfig.delay * t
+        }
+    };
+}
+
+function clearSharedRoll() {
+    OBR.broadcast.sendMessage("quickdice.popoverRemove", {
+        'id': rollId
+    }, { destination: 'REMOTE' })
+    .catch(error => {
+        console.error(`Failed to send closePopover message for ID ${id}:`, error);
+    });
+}
+
+function executeSharedRoll(diceArray, config, seed, simSpeed) {
+    OBR.broadcast.sendMessage("quickdice.popoverRoll", {
+        'id': rollId,
+        'playerName': playerName,
+        'width': canvasWidth,
+        'height': canvasHeight,
+        'diceArray': diceArray,
+        'config': config,
+        'seed': seed,
+        'simSpeed': simSpeed
+    }, {destination: 'REMOTE'}).catch(error => {
+        console.error("Failed to send broadcast message:", error);
+    });
+}
+
+function forcePopoverResize() {
+    OBR.broadcast.sendMessage("quickdice.popoverResize", {
+        'width': canvasWidth, 
+        'height': canvasHeight,
+    }, {destination: 'REMOTE'}).catch(error => {
+        console.error("Failed to send broadcast message:", error);
+    });
+}
+
+function openPopover() {
+    const encodedWidth = encodeURIComponent(JSON.stringify(canvasWidth));
+    const encodedHeight = encodeURIComponent(JSON.stringify(canvasHeight));
+
+    const popoverURL = `/popover.html?width=${encodedWidth}&height=${encodedHeight}`;
+
+    try {
+        return OBR.popover.open({
+            id: "quickdice-popvoer",
+            url: popoverURL,
+            width: canvasWidth,
+            height: canvasHeight,
+            anchorOrigin: {
+                horizontal: "RIGHT",
+                vertical: "BOTTOM",
+            },
+            transformOrigin: {
+                horizontal: "CENTER",
+                vertical: "CENTER",
+            },
+            hidePaper: true,
+            disableClickAway: true,
+            marginThreshold: 50,
+        });
+    } catch (error) {
+        console.error("Error opening popover:", error);
+    }
+}
+
+function closePopover() {
+    try {
+        return OBR.popover.close("quickdice-popvoer");
+    } catch (error) {
+        console.error("Error closing popover:", error);
+    }
+}
+
+async function resizeCanvas(diceBox) {
+    const canvas = document.getElementById('dice-canvas');
+    const rect = canvas.getBoundingClientRect();
+    if (!canvasWidth || rect.width != canvasWidth || !canvasHeight ||rect.height != canvasHeight) {
+        canvasWidth = rect.width;
+        canvasHeight = rect.height;
+        await diceBox.setDimensions(canvasWidth, canvasHeight);
+    }
+}
+
+async function createDiceBox() {
+    const diceCanvas = document.getElementById("dice-canvas");
+    if (diceCanvas) {
+        diceCanvas.remove();
+    }
+
+    const testCanvas = document.createElement('canvas');
+
+    testCanvas.id = 'dice-canvas-tester';
+    testCanvas.style.pointerEvents = "none";
+    testCanvas.style.position = 'absolute';
+    testCanvas.style.top = '0';
+    testCanvas.style.left = '0';
+    testCanvas.style.width = '100%';
+    testCanvas.style.height = '100%';
+    testCanvas.style.zIndex = '10';
+    container.appendChild(testCanvas);
+
+    const rect = testCanvas.getBoundingClientRect();
+    canvasWidth = rect.width;
+    canvasHeight = rect.height;
+
+    container.removeChild(testCanvas);
+
+    const config = time_config();
+
+    var diceBox = new DiceBox({... config, ... { canvasWidth: canvasWidth, canvasHeight: canvasHeight }});
+
+    const canvas = document.getElementById('dice-canvas');
+    canvas.style.pointerEvents = "none";
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.zIndex = '10';
+
+    await diceBox.init();
+    
+    let debouncedResizeCanvas = debounce(() => resizeCanvas(diceBox));
+    debouncedResizeCanvas();
+    window.addEventListener('resize', () => debouncedResizeCanvas());
+
+    openPopover();
+
+    document.getElementById('container').onclick = () => {
+        if (!isRolling && !isCleared) {
+            diceBox.clear();
+            isRolling = false;
+            isCleared = true;
+            clearSharedRoll();
+        }
+    };
+    diceBox.onRollComplete = (result) => {
+        isRolling = false;
+    };
+    diceBox.onBeforeRoll = (result) => {
+        isRolling = true;
+    };
+
+    return diceBox
 }
 
 function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
@@ -131,202 +370,11 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
     return card;
 }
 
-function time_config(t) {
-    t = (1 - t / 100) * 0.5 + t / 100 * (2 - 0.5)
-
-    // gravity: 1.6,
-    // mass: 1,
-    // friction: 0.6,
-    // restitution: 0.1,
-    // angularDamping: 0.4,
-    // linearDamping: 0.4,
-    // spinForce: 4,
-    // throwForce: 4,
-    // startingHeight: 10,
-    // settleTimeout: 4500,
-    // scale: 7,
-    const originalConfig = {
-        gravity: 1.6,
-        mass: 1,
-        friction: 0.6,
-        restitution: 0.3,
-        angularDamping: 0.2,
-        linearDamping: 0.3,
-        spinForce: 5,
-        throwForce: 4,
-        startingHeight: 10,
-        settleTimeout: 4000,
-        scale: 7,
-        lightIntensity: 1,
-        enableShadows: true,
-        shadowTransparency: 0.8,
-        theme: 'smooth',
-        themeColor: '#eeeeee',
-        preloadThemes: ['gemstone', 'dice-of-rolling', 'smooth', 'rock', 'rust', 'blue-green-metal']
-    };
-
-    return {
-        assetPath: '/assets/dice-box/',
-        container: '#container',
-        id: 'dice-canvas',
-        gravity: originalConfig.gravity / (t * t),
-        mass: originalConfig.mass,
-        friction: originalConfig.friction,
-        restitution: originalConfig.restitution,
-        angularDamping: originalConfig.angularDamping / t,
-        linearDamping: originalConfig.linearDamping / t,
-        spinForce: originalConfig.spinForce / t,
-        throwForce: originalConfig.throwForce / t,
-        startingHeight: originalConfig.startingHeight,
-        settleTimeout: originalConfig.settleTimeout * t,
-        delay: originalConfig.delay * t,
-        scale: originalConfig.scale,
-        theme: originalConfig.theme,
-        themeColor: originalConfig.themeColor,
-        preloadThemes: originalConfig.preloadThemes
-    };
-}
-
-function createDiceBox() {
-    const diceCanvas = document.getElementById("dice-canvas");
-    if (diceCanvas) {
-        diceCanvas.remove();
-    }
-
-    var diceBox = new DiceBox(time_config(parseInt(document.querySelector("#physicalSlider").value)));
-
-    const canvas = document.getElementById('dice-canvas');
-    canvas.style.pointerEvents = "none";
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.zIndex = '10';
-
-    function resizeCanvas() {
-        const rect = canvas.getBoundingClientRect();
-        canvas.width = rect.width;
-        canvas.height = rect.height;
-    }
-    resizeCanvas();
-    window.addEventListener('resize', resizeCanvas);
-    
-    diceBox.init().then(() => {
-
-        document.getElementById('container').onclick = () => {
-            if (!isRolling) {
-                diceBox.clear();
-                isCleared = true;
-                isRolling = false;
-            }
-        };
-        diceBox.onRollComplete = (result) => {
-            isRolling = false;
-        };
-        diceBox.onBeforeRoll = (result) => {
-            isRolling = true;
-        };
-    });
-
-    return diceBox
-}
-
-async function closePopover(popoverId) {
-    OBR.popover.close(popoverId).catch((error) => {
-        console.error("Error closing popover:", error);
-    });
-}
-
-function clearSharedDice(max = 100000) {
-    let i = 0;
-    if (Array.isArray(popoverIds)) {
-        while (popoverIds.length > 0 && i < max) {
-            const popoverId = popoverIds.shift();
-            OBR.broadcast.sendMessage("quickdice.closePopover", {
-                'id': popoverId
-            }, { destination: 'REMOTE' })
-            .catch(error => {
-                console.error(`Failed to send closePopover message for ID ${popoverId}:`, error);
-            });
-            i++;
-        }
-    }
-}
-
-async function rollSharedDice(popoverId, dimensions, config, diceArray, seed, simSpeed) {
-    OBR.broadcast.sendMessage("quickdice.rollPopoverDice", {
-        'id': popoverId, 
-        'dimensions': dimensions, 
-        'config': config,
-        'diceArray': diceArray,
-        'seed': seed,
-        'simSpeed': simSpeed
-    }, {destination: 'REMOTE'}).catch(error => {
-        console.error("Failed to send broadcast message:", error);
-    });
-    setTimeout(() => {
-        OBR.broadcast.sendMessage("quickdice.closePopover", {
-            'id': popoverId
-        }, { destination: 'REMOTE' })
-        .catch(error => {
-            console.error(`Failed to send closePopover message for ID ${popoverId}:`, error);
-        });
-    }, 6000);
-}
-
-async function rollPopoverDice(id, dimensions, config, diceArray, seed, simSpeed) {
-    try {
-        // Serialize each object to a JSON string
-        const serializedId = id;
-        const serializedDimensions = JSON.stringify(dimensions);
-        const serializedConfig = JSON.stringify(config);
-        const serializedDiceArray = JSON.stringify(diceArray);
-        const serializedSeed = JSON.stringify(seed);
-        const serializedSimSpeed = JSON.stringify(simSpeed);
-
-        // Encode each serialized string for safe URL inclusion
-        const encodedId = encodeURIComponent(serializedId);
-        const encodedDimensions = encodeURIComponent(serializedDimensions);
-        const encodedConfig = encodeURIComponent(serializedConfig);
-        const encodedDiceArray = encodeURIComponent(serializedDiceArray);
-        const encodedSeed = encodeURIComponent(serializedSeed);
-        const encodedSimSpeed = encodeURIComponent(serializedSimSpeed);
-
-        // Construct the popover URL with query parameters
-        const popoverURL = `/popover.html?id=${encodedId}&dimensions=${encodedDimensions}&config=${encodedConfig}&diceArray=${encodedDiceArray}&seed=${encodedSeed}&simSpeed=${encodedSimSpeed}`;
-
-        // Open the popover with the constructed URL
-        OBR.popover.open({
-            id: id,
-            url: popoverURL,
-            width: dimensions.width, // 60% of the screen width
-            height: dimensions.height, // 60% of the screen height
-            anchorOrigin: {
-                horizontal: "RIGHT",
-                vertical: "BOTTOM",
-            },
-            transformOrigin: {
-                horizontal: "CENTER",
-                vertical: "CENTER",
-            },
-            hidePaper: true, // Makes the background transparent
-            disableClickAway: false,
-            marginThreshold: 70,
-        });
-
-    } catch (error) {
-        console.error("Error opening popover:", error);
-    }
-}
-
-let isHidden;
-let isPhysical;
-export function setupDiceRoller(userId) {
-
+export async function setupDiceRoller(id) {
+    playerName = id;
     updateCommandsList()
 
-    var diceBox = createDiceBox();
+    var diceBox = await createDiceBox();
 
     const attackCommandInput = document.getElementById('attackCommand');
 
@@ -354,7 +402,7 @@ export function setupDiceRoller(userId) {
 
     rollButton.addEventListener('click', async () => {
 
-        clearSharedDice();
+        clearSharedRoll();
 
         const userInput = emojiToText(attackCommandInput.value).trim();
         const parseResults = parseInput(userInput);
@@ -371,7 +419,7 @@ export function setupDiceRoller(userId) {
         isHidden = hiddenCheckbox.checked;
         isPhysical = physicalCheckbox.checked;
 
-        const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox, isPhysical, isHidden);
+        const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox);
         const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
         if (historyEntry.textContent.length > 0) {
             historyContainer.prepend(historyEntry);
@@ -422,16 +470,6 @@ export function setupDiceRoller(userId) {
         }
     });
 
-    OBR.broadcast.onMessage("quickdice.closePopover", (event) => {
-        const { id } = event.data;
-        closePopover(id);
-    });
-
-    OBR.broadcast.onMessage("quickdice.rollPopoverDice", (event) => {
-        const { id, dimensions, config, diceArray, seed, simSpeed } = event.data;
-        rollPopoverDice(id, dimensions, config, diceArray, seed, simSpeed);
-    });
-
     OBR.broadcast.onMessage("quickdice.diceResults", (event) => {
         const { command, attackRolls, damageResults, hpResult } = event.data;
 
@@ -464,9 +502,9 @@ export function setupDiceRoller(userId) {
         }
         if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             diceBox.clear();
-            isCleared = true;
             isRolling = false;
-            clearSharedDice();
+            isCleared = true;
+            clearSharedRoll();
         }
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
             event.preventDefault(); 
@@ -482,18 +520,18 @@ export function setupDiceRoller(userId) {
     });
 
     const physicalSlider = document.querySelector("#physicalSlider");
-    physicalSlider.addEventListener("mouseup", () => {
+    physicalSlider.addEventListener("mouseup", async () => {
         if (!isRolling) {
-            diceBox = createDiceBox();
+            diceBox = await createDiceBox();
         }
     });
-    physicalSlider.addEventListener("touchend", () => {
+    physicalSlider.addEventListener("touchend", async () => {
         if (!isRolling) {
-            diceBox = createDiceBox();
+            diceBox = await createDiceBox();
         }
         else {
-            diceBox.onRollComplete = () => {
-                diceBox = createDiceBox();
+            diceBox.onRollComplete = async () => {
+                diceBox = await createDiceBox();
             };
         }
     });
@@ -587,7 +625,7 @@ function getThemeAndColor(damageType) {
     return mapping[key] || { theme: 'default', themeColor: '#ffffff' };
 }
 
-async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, isHidden, wait = false) {
+async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, wait = false) {
 
     if (!physicalDiceRoll) {
         diceList.forEach(attackDice => {
@@ -631,21 +669,16 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, isHidden, w
         try {
             const sampler = () => Math.round(99999 * Math.random());
             const seed = {a: sampler(), b: sampler(), c: sampler(), d: sampler()};
-            const simSpeed = 20;
-            popoverIds.push("myId-" + Math.round(Math.random()*1000000).toString());
-            isCleared = false;
-            if (!isHidden) {
-                rollSharedDice(popoverIds[popoverIds.length - 1], 
-                            {
-                                width: document.getElementById("dice-canvas").width,
-                                height: document.getElementById("dice-canvas").height
-                            },
-                            time_config(parseInt(document.querySelector("#physicalSlider").value)), 
-                            diceArray, 
-                            seed, 
-                            simSpeed)
+            const simSpeed = Math.round(20 / ((getSpeedFromSlider() - 1) * 0.5 + 1));
+            if (!isHidden) {            
+                rollId = uuid();
+                executeSharedRoll(  diceArray,
+                                    time_config(), 
+                                    seed, 
+                                    simSpeed);
             }
             const results = await diceBox.roll(diceArray, {}, seed, simSpeed);
+            isCleared = false;
             const groupTotals = {};
             results.forEach((dieResult) => {
                 const { groupId, value } = dieResult;
@@ -667,7 +700,7 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, isHidden, w
     return diceList;
 }
 
-async function performAttack(attackParams, diceBox, isPhysical, isHidden) {
+async function performAttack(attackParams, diceBox) {
     let attackRolls = [];
     let damageResults = [];
     let hpResult = null;
@@ -727,7 +760,7 @@ async function performAttack(attackParams, diceBox, isPhysical, isHidden) {
     }
 
     if (!automaticHit && diceRolls.attackDice.length > 0) {
-        diceRolls.attackDice = await executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox, isHidden);
+        diceRolls.attackDice = await executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox);
     }
 
     for (let i = 0; i < attackParams.num_attacks; i++) {
@@ -839,9 +872,11 @@ async function performAttack(attackParams, diceBox, isPhysical, isHidden) {
             }
         }
     }
+
     if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0)) {
-        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox, isHidden, true);
+        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox, true);
     }
+
     diceRolls.damageDice.forEach(damageDice => {
         let damageInstances = [];
         damageDice.dice.forEach(dice => {
