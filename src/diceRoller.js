@@ -62,7 +62,7 @@ function rollDice(number, diceType) {
 
 function getSpeedFromSlider() {
     //const t = parseInt(document.querySelector("#physicalSlider").value);
-    const t = 1;
+    const t = 50;
     return (1 - t / 100) * 0.5 + t / 100 * (2 - 0.5)
 }
 function time_config() {

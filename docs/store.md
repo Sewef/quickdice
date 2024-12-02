@@ -6,14 +6,9 @@ image: https://quickdice.onrender.com/icon.svg
 icon: https://quickdice.onrender.com/icon.svg
 tags:
   - die
-  - dice
-  - quick
-  - simple
-  - command
-  - roll
-  - rolls
-  - damage types
-  - dombat
+  - tool
+  - combat
+  - automation
 manifest: https://quickdice.onrender.com/manifest.json
 learn-more: robert.wegner4@outlook.de
 ---
