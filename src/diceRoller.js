@@ -61,7 +61,8 @@ function rollDice(number, diceType) {
 }
 
 function getSpeedFromSlider() {
-    const t = parseInt(document.querySelector("#physicalSlider").value);
+    //const t = parseInt(document.querySelector("#physicalSlider").value);
+    const t = 1;
     return (1 - t / 100) * 0.5 + t / 100 * (2 - 0.5)
 }
 function time_config() {
@@ -518,6 +519,7 @@ export async function setupDiceRoller(id) {
     });
 
     const physicalSlider = document.querySelector("#physicalSlider");
+    physicalSlider.style.display = 'none';
     physicalSlider.addEventListener("mouseup", async () => {
         if (!isRolling) {
             diceBox = await createDiceBox();
