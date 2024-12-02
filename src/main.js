@@ -128,7 +128,6 @@ document.addEventListener("DOMContentLoaded", (event) => {
             <li>When the extension is in focus:
                 <ul>
                     <li><strong>CTRL+S</strong> to select the command input.</li>
-                    <li><strong>CTRL+I</strong> to toggle the info box.</li>
                     <li><strong>CTRL+H</strong> to toggle whether the roll results will be shared with other players.</li>
                     <li><strong>CTRL+P</strong> to toggle the usage of physical dice rolls.</li>
                 </ul>
@@ -138,7 +137,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
     <p>
         <h2>Saving and loading commands</h2>
         <ul>
-            <li>Use <span class="code-font">save mycommand</span, <span class="code-font">load mycommand</span> and <span class="code-font">load mycommand</span>
+            <li>Use <span class="code-font">save mycommand</span, <span class="code-font">load mycommand</span> and <span class="code-font">delete mycommand</span>
             to save, load and delete commands. ></li>
             <li>You can view your saved commands can be seen in the dropdown menu under "commands".</li>
         </ul>
