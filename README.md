@@ -1,19 +1,11 @@
----
-title: Quickdice
-description: Quickdice is a simple CLI-style application for complex d20 attack rolls.
-author: Robert Wegner
-image: https://quickdice.onrender.com/icon.svg
-icon: https://quickdice.onrender.com/icon.svg
-tags:
-  - die
-  - tool
-  - combat
-  - automation
-manifest: https://quickdice.onrender.com/manifest.json
-learn-more: robert.wegner4@outlook.de
----
-
 # Quickdice
+=========
+
+Quickdice is an extension for the Owlbear Rodeo VTT. It is a simple CLI-style application designed for executing complex d20 attack rolls quickly.
+
+Author: Robert Wegner
+Contact: robert.wegner4@outlook.de
+
 
 ### 1. Ability Checks/Attack Rolls
 - Use `1n`, `1a`, or `1d` for a d20 roll that is normal, with advantage, or with disadvantage, respectively.
