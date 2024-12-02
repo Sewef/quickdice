@@ -166,7 +166,7 @@ function openPopover() {
             },
             hidePaper: true,
             disableClickAway: true,
-            marginThreshold: 60,
+            marginThreshold: 70,
         });
     } catch (error) {
         console.error("Error opening popover:", error);
