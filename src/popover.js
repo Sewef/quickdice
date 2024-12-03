@@ -31,6 +31,7 @@ class QueueProcessor {
         this.enqueueFunction = enqueueFunction;
         this.delay = delay;
         this.currentItem = null;
+        this.cancelled = false;
     }
 
     enqueue(data) {
@@ -60,35 +61,35 @@ class QueueProcessor {
             }
             return;
         }
-        const data = this.queue[0];
+        const data = this.queue.shift();
         this.currentItem = data;
+        const id = this.currentItem.id;
         if (this.preProcessFunction) {
             this.preProcessFunction(data);
         }
         try {
             await this.processFunction(data);
         } catch (error) {
-            console.error(`Error processing data with id ${data.id}:`, error);
+            //console.error(`Error processing data with id ${data.id}:`, error);
         }
 
-        this.currentItem = null;
         setTimeout(async () => {
-            if (this.postProcessFunction) {
-                await this.postProcessFunction(data);
+            if (this.currentItem && id == this.currentItem.id) {
+                this.currentItem = null;
+                this.processNext();
             }
-            this.queue.shift();
-            this.processNext();
         }, this.delay);
     }
 
     remove(id) {
         if (this.currentItem && this.currentItem.id === id) {
+            this.enqueueFunction();
             if (this.cancelFunction) {
                 this.cancelFunction(this.currentItem);
-                this.processing = false;
-                this.queue.shift();
-                this.startProcessing();
             }
+            this.processing = false;
+            this.startProcessing();
+            this.cancelled = true;
             return true;
         }
 
@@ -105,9 +106,9 @@ class QueueProcessor {
         if (this.currentItem) {
             if (this.cancelFunction) {
                 this.cancelFunction(this.currentItem);
-                if (this.postProcessFunction) {
-                    this.postProcessFunction(this.currentItem);
-                }
+                // if (this.postProcessFunction) {
+                //     this.postProcessFunction(this.currentItem);
+                // }
                 this.processing = false;
                 this.startProcessing();
             }
@@ -132,29 +133,7 @@ class QueueProcessor {
     }
 }
 
-const defaultConfig = {
-    assetPath: '/assets/dice-box/',
-    container: '#popover-container',
-    id: 'popover-dice-canvas',
-    gravity: 1.6,
-    mass: 1,
-    friction: 0.5,
-    restitution: 0.3,
-    angularDamping: 0.2,
-    linearDamping: 0.3,
-    spinForce: 5,
-    throwForce: 4,
-    startingHeight: 10,
-    settleTimeout: 4000,
-    scale: 7,
-    lightIntensity: 1,
-    enableShadows: true,
-    shadowTransparency: 0.8,
-    theme: 'smooth',
-    themeColor: '#eeeeee',
-    preloadThemes: ['gemstone', 'dice-of-rolling', 'smooth', 'rock', 'rust', 'blue-green-metal'],
-    autoResize: false
-};
+let defaultConfig;
 
 function printQueue() {
     const queueDisplay = document.getElementById('queue-display');
@@ -163,9 +142,9 @@ function printQueue() {
         return;
     }
 
-    const { queue } = rollQueueProcessor;
-    let [first, ...rest] = queue;
-
+    const { queue, currentItem } = rollQueueProcessor;
+    let rest = queue;
+    let first = currentItem;
 
     queueDisplay.innerHTML = '';
 
@@ -280,12 +259,15 @@ async function hidePopover() {
 OBR.onReady(async () => {
 
     const params = getQueryParams();
+    canvasWidth = JSON.parse(params.width);
+    canvasHeight = JSON.parse(params.height);
+    defaultConfig = JSON.parse(params.defaultConfig);
+    defaultConfig.container = '#popover-container',
+    defaultConfig.id = 'popover-dice-canvas',
 
-    canvasWidth = params.width;
-    canvasHeight = params.height;
 
     diceBox = await createDiceBox();
-    
+
     hidePopover();
 
     document.getElementById('popover-container').onclick = () => {

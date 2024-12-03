@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", (event) => {
             Physical
           </label>
           <label>
-            <input type="range" id="physicalSlider" style="display: none" min="0" max="100" value="50" />
+            <input type="range" id="physicalSlider" min="0" max="100" value="50" />
           </label>
         </div>
       </div>
