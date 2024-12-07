@@ -534,10 +534,34 @@ export async function setupDiceRoller(id) {
         try {
             const { id, command, isHidden, isPhysical, attackSeed, damageSeed } = event.data;
             const parseResults = parseInput(command);
+            const cleanedUserInput = parseResults?.cleanedUserInput;
             const attackParams = parseResults?.attackParams;
             const result = await performAttack(attackParams, diceBox, isHidden, isPhysical, true, attackSeed, damageSeed);
             if (result) {
                 const  { attackRolls, damageResults, hpResult } = result;
+
+                const addToHistory = true;
+                if (addToHistory) {              
+                    const historyContainer = document.getElementById('history');
+                    const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
+                    if (historyEntry.textContent.length > 0) {
+                        historyContainer.prepend(historyEntry);
+                    }
+                    if (historyContainer.children.length >= 20) {
+                        historyContainer.removeChild(historyContainer.lastChild);
+                    }
+        
+                    if (!isHidden) {
+                        OBR.broadcast.sendMessage("quickdice.diceResults", {
+                            'command': cleanedUserInput, 
+                            'attackRolls': attackRolls, 
+                            'damageResults': damageResults,
+                            'hpResult': hpResult
+                        }, {destination: 'REMOTE'}).catch(error => {
+                            console.error("Failed to send broadcast message:", error);
+                        });
+                    }
+                }
                 OBR.broadcast.sendMessage("quickdice.api.result." + id, { id, attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
                 OBR.broadcast.sendMessage("quickdice.api.results", { id, attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
             }
