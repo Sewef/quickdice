@@ -17,9 +17,11 @@ function getQueryParams() {
 }
 
 class QueueProcessor {
-    constructor(processFunction, cancelFunction, 
+    constructor(processFunction, 
+                cancelFunction, 
                 preProcessFunction = null, 
                 postProcessFunction = null, 
+                endProcessFunction = null,
                 enqueueFunction = null,
                 delay = 0) {
         this.queue = [];
@@ -28,6 +30,7 @@ class QueueProcessor {
         this.cancelFunction = cancelFunction;
         this.preProcessFunction = preProcessFunction;
         this.postProcessFunction = postProcessFunction;
+        this.endProcessFunction = endProcessFunction;
         this.enqueueFunction = enqueueFunction;
         this.delay = delay;
         this.currentItem = null;
@@ -56,21 +59,25 @@ class QueueProcessor {
         if (this.queue.length === 0) {
             this.processing = false;
             this.currentItem = null;
-            if (this.postProcessFunction) {
-                this.postProcessFunction(this.currentItem);
+            if (this.endProcessFunction) {
+                this.endProcessFunction(this.currentItem);
             }
             return;
         }
         const data = this.queue.shift();
         this.currentItem = data;
         const id = this.currentItem.id;
+        var result;
         if (this.preProcessFunction) {
             this.preProcessFunction(data);
         }
         try {
-            await this.processFunction(data);
+            result = await this.processFunction(data);
         } catch (error) {
-            //console.error(`Error processing data with id ${data.id}:`, error);
+            console.error(`Error processing data with id ${data.id}:`, error);
+        }
+        if (this.postProcessFunction) {
+            this.postProcessFunction(result, data);
         }
 
         setTimeout(async () => {
@@ -106,9 +113,6 @@ class QueueProcessor {
         if (this.currentItem) {
             if (this.cancelFunction) {
                 this.cancelFunction(this.currentItem);
-                // if (this.postProcessFunction) {
-                //     this.postProcessFunction(this.currentItem);
-                // }
                 this.processing = false;
                 this.startProcessing();
             }
@@ -175,8 +179,9 @@ function printQueue() {
     queueDisplay.appendChild(fragment);
 }
 
-  
-const rollQueueProcessor = new QueueProcessor(rollDice, clearDice, showPopover, hidePopover, printQueue, 2000);
+const rollQueueProcessor = new QueueProcessor(rollDice, clearDice, showPopover, broadcastResult, hidePopover, printQueue, 2000);
+
+
 let diceBox;
 let canvasWidth = 100;
 let canvasHeight = 100;
@@ -231,7 +236,8 @@ async function createDiceBox() {
 }
 
 async function rollDice(data) {
-    const { id, playerName, width, height, diceArray, config, seed, simSpeed } = data;
+    const { id, playerName, width, height, diceArray, config, seed, simSpeed, delay } = data;
+    rollQueueProcessor.delay = delay;
     canvasWidth = width
     canvasHeight = height;
     await resizeCanvas();
@@ -254,6 +260,10 @@ async function hidePopover() {
     let prom1 = OBR.popover.setWidth("quickdice-popover", 2);
     let prom2 = OBR.popover.setHeight("quickdice-popover", 2);
     await Promise.all([prom1, prom2]);
+}
+
+async function broadcastResult(result, data) {
+    OBR.broadcast.sendMessage("quickdice.api." + data.id, { result }, { destination: 'LOCAL' });
 }
 
 OBR.onReady(async () => {

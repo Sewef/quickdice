@@ -127,17 +127,36 @@ function clearSharedRoll() {
 }
 
 function executeSharedRoll(diceArray, config, seed, simSpeed, destination) {
-    OBR.broadcast.sendMessage("quickdice.popoverRoll", {
-        'id': rollId,
-        'playerName': playerName,
-        'width': canvasWidth,
-        'height': canvasHeight,
-        'diceArray': diceArray,
-        'config': config,
-        'seed': seed,
-        'simSpeed': simSpeed
-    }, {destination: destination}).catch(error => {
-        console.error("Failed to send broadcast message:", error);
+    return new Promise((resolve, reject) => {
+
+        if (destination !== 'LOCAL') {
+            resolve();
+        }
+        else {
+            const unsubscribe = OBR.broadcast.onMessage("quickdice.api." + rollId, (event) => {
+                unsubscribe();
+                const result = event.data.result;
+                if (result) {
+                    resolve(result);
+                }
+                else {
+                    reject(new Error("No result from api dice roll"));
+                }
+            });
+        }
+        OBR.broadcast.sendMessage("quickdice.popoverRoll", {
+            'id': rollId,
+            'playerName': playerName,
+            'width': canvasWidth,
+            'height': canvasHeight,
+            'diceArray': diceArray,
+            'config': config,
+            'seed': seed,
+            'simSpeed': simSpeed,
+            'delay': 1000
+        }, { destination }).catch(error => {
+            console.error("Failed to send broadcast message:", error);
+        });
     });
 }
 
@@ -273,7 +292,19 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
 
     if (attackRolls !== null) {
         const attackDiv = document.createElement('div');
-        attackDiv.innerHTML = attackRolls.join(', ');
+        const attackStrings = attackRolls.map((attackObj) => {
+            const {isHit, isCrit, value } = attackObj;
+            let attackStr;
+            if (isCrit) {
+                attackStr = `<span class="crit">${value}</span>`;
+            } else if (isHit) {
+                attackStr = `<span class="hit">${value}</span>`;
+            } else {
+                attackStr = `${value}`;
+            }
+            return attackStr;
+        });
+        attackDiv.innerHTML = attackStrings.join(', ');
         entry.appendChild(attackDiv);
     }
 
@@ -366,6 +397,13 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
 }
 
 export async function setupDiceRoller(id) {
+
+    setTimeout(() => {
+        OBR.broadcast.sendMessage("quickdice.api.roll", { id: "myRoll", command: "5n+1d6 vs 12 dmg 3d8fi+1d4+2ne hp 100" }, { destination: 'LOCAL' });
+        OBR.broadcast.onMessage("quickdice.api.results", (event) => {
+        });
+    }, 2000);
+
     playerName = id;
     updateCommandsList()
 
@@ -407,30 +445,35 @@ export async function setupDiceRoller(id) {
             attackCommandInput.classList.add('input-error');
             setTimeout(() => {
                 attackCommandInput.classList.remove('input-error');
-            }, 500);
+            }, 1000);
 
             return;
         }
         isHidden = hiddenCheckbox.checked;
         isPhysical = physicalCheckbox.checked;
 
-        const { attackRolls, damageResults, hpResult } = await performAttack(attackParams, diceBox);
-        const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
-        if (historyEntry.textContent.length > 0) {
-            historyContainer.prepend(historyEntry);
-        }
-        if (historyContainer.children.length >= 20) {
-            historyContainer.removeChild(historyContainer.lastChild);
-        }
-        if (!isHidden) {
-            OBR.broadcast.sendMessage("quickdice.diceResults", {
-                'command': cleanedUserInput, 
-                'attackRolls': attackRolls, 
-                'damageResults': damageResults,
-                'hpResult': hpResult
-            }, {destination: 'REMOTE'}).catch(error => {
-                console.error("Failed to send broadcast message:", error);
-            });
+        const result = await performAttack(attackParams, diceBox, isHidden, isPhysical, false);
+        if (result) {
+            const { attackRolls, damageResults, hpResult } = result;
+        
+            const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
+            if (historyEntry.textContent.length > 0) {
+                historyContainer.prepend(historyEntry);
+            }
+            if (historyContainer.children.length >= 20) {
+                historyContainer.removeChild(historyContainer.lastChild);
+            }
+
+            if (!isHidden) {
+                OBR.broadcast.sendMessage("quickdice.diceResults", {
+                    'command': cleanedUserInput, 
+                    'attackRolls': attackRolls, 
+                    'damageResults': damageResults,
+                    'hpResult': hpResult
+                }, {destination: 'REMOTE'}).catch(error => {
+                    console.error("Failed to send broadcast message:", error);
+                });
+            }
         }
 
         if (attackParams.save_content !== null) {
@@ -475,6 +518,26 @@ export async function setupDiceRoller(id) {
         }
         if (historyContainer.children.length >= 20) {
             historyContainer.removeChild(historyContainer.lastChild); 
+        }
+    });
+
+    OBR.broadcast.onMessage("quickdice.api.roll", async (event) => {
+        try {
+            const { id, command, isHidden, isPhysical, attackSeed, damageSeed } = event.data;
+            const parseResults = parseInput(command);
+            const attackParams = parseResults?.attackParams;
+            const result = await performAttack(attackParams, diceBox, isHidden, isPhysical, true, attackSeed, damageSeed);
+            if (result) {
+                const  { attackRolls, damageResults, hpResult } = result;
+                OBR.broadcast.sendMessage("quickdice.api.result." + id, { attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
+                OBR.broadcast.sendMessage("quickdice.api.results", { id, attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
+            }
+            else {
+                OBR.broadcast.sendMessage("quickdice.api.error", { id }, { destination: 'LOCAL' });
+            }
+        }
+        catch {
+            OBR.broadcast.sendMessage("quickdice.api.error", { id }, { destination: 'LOCAL' });
         }
     });
 
@@ -612,13 +675,13 @@ function getThemeAndColor(damageType) {
     return mapping[key] || { theme: 'default', themeColor: '#ffffff' };
 }
 
-async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, wait = false) {
-    if (!physicalDiceRoll) {
+async function executeDiceRolls(diceList, diceBox, wait, isHidden, isPhysical, isExternal, seed) {
+    if (!isPhysical) {
         diceList.forEach(attackDice => {
             attackDice.dice.forEach(dice => {
                 const diceType = parseInt(dice.type.substring(1));
                 const count = dice.count;
-                const { total, rolls } = rollDice(count, diceType);
+                const { total } = rollDice(count, diceType);
                 dice.total = total;
             });
         });
@@ -652,42 +715,62 @@ async function executeDiceRolls(diceList, physicalDiceRoll, diceBox, wait = fals
                 groupIdCounter++;
             });
         });
-        try {
-            const sampler = () => Math.round(99999 * Math.random());
-            const seed = {a: sampler(), b: sampler(), c: sampler(), d: sampler()};
-            if (!isHidden && isPhysical) {           
-                executeSharedRoll(  diceArray,
-                                    time_config(), 
-                                    seed, 
-                                    simSpeed,
-                                    'REMOTE');
-            }
-            const results = await diceBox.roll(diceArray, {}, seed, simSpeed);
 
-            isCleared = false;
-
-            const groupTotals = {};
-            results.forEach((dieResult) => {
-                const { groupId, value } = dieResult;
-                if (!groupTotals[groupId]) {
-                    groupTotals[groupId] = 0;
-                }
-                groupTotals[groupId] += value;
-            });
-            diceMapping.forEach((mapping) => {
-                const { groupId, diceObj } = mapping;
-                const total = groupTotals[groupId] || 0;
-                diceObj.total = total;
-            });
-        } catch (error) {
-            console.error("Error during dice roll:", error);
+        if (!isHidden && isPhysical) {           
+            executeSharedRoll(diceArray, time_config(), seed, simSpeed, 'REMOTE');
         }
+
+        isCleared = false;
+
+        var results;
+        var rollFunction;
+        if (!isExternal) {
+            rollFunction = () => diceBox.roll(diceArray, {}, seed, simSpeed);
+        }
+        else {
+            rollFunction = () => executeSharedRoll(diceArray, time_config(), seed, simSpeed, 'LOCAL');
+        }
+        
+        try {
+            const timeout = (ms) => {
+                return new Promise((_, reject) => {
+                    setTimeout(() => {
+                        reject(new Error(`Operation timed out after ${ms} ms`));
+                    }, ms);
+                });
+            };
+            results = await Promise.race([
+                rollFunction(),
+                timeout(12000)
+            ]);   
+        }
+        catch{
+            return null;
+        }
+        
+        const groupTotals = {};
+        results.forEach((dieResult) => {
+            const { groupId, value } = dieResult;
+            if (!groupTotals[groupId]) {
+                groupTotals[groupId] = 0;
+            }
+            groupTotals[groupId] += value;
+        });
+        diceMapping.forEach((mapping) => {
+            const { groupId, diceObj } = mapping;
+            const total = groupTotals[groupId] || 0;
+            diceObj.total = total;
+        });
     }
 
     return diceList;
 }
 
-async function performAttack(attackParams, diceBox) {
+
+const sampler = () => Math.round(99999 * Math.random());
+const seedSampler = () => ({ a: sampler(), b: sampler(), c: sampler(), d: sampler() });
+
+async function performAttack(attackParams, diceBox, isHidden=false, isPhysical=true, isExternal=false, attackSeed=seedSampler(), damageSeed=seedSampler()) {
     let attackRolls = [];
     let damageResults = [];
     let hpResult = null;
@@ -750,19 +833,22 @@ async function performAttack(attackParams, diceBox) {
     var performedAttackRoll = false;
 
     if (!automaticHit && diceRolls.attackDice.length > 0) {
-        let promise = executeDiceRolls(diceRolls.attackDice, isPhysical, diceBox);
+        let promise = executeDiceRolls(diceRolls.attackDice, diceBox, false, isHidden, isPhysical, isExternal, attackSeed);
         currentRollId = rollId;
         performedAttackRoll = true;
         diceRolls.attackDice = await promise;
+        if (!diceRolls.attackDice) {
+            return null;
+        }
     }
 
     for (let i = 0; i < attackParams.num_attacks; i++) {
-        let hit = false;
+        let isHit = false;
         let isCrit = false;
 
         if (automaticHit) {
             // No attack roll is made
-            hit = true;
+            isHit = true;
             attackRolls = null; // Since no attack roll is made
             isCrit = false; // No critical hit possible
         } else {
@@ -812,24 +898,20 @@ async function performAttack(attackParams, diceBox) {
 
             // Determine hit or miss
             if (attackParams.target_ac === null || attackParams.target_ac === undefined) {
-                hit = true; // Attack hits automatically if target AC is null
+                isHit = true; // Attack hits automatically if target AC is null
             } else {
-                hit = isCrit || (total_attack >= attackParams.target_ac);
+                isHit = isCrit || (total_attack >= attackParams.target_ac);
             }
 
-            // Format attack roll
-            let attackStr;
-            if (isCrit) {
-                attackStr = `<span class="crit">${total_attack}</span>`;
-            } else if (hit) {
-                attackStr = `<span class="hit">${total_attack}</span>`;
-            } else {
-                attackStr = `${total_attack}`;
+            let attackObj = {
+                isHit: isHit,
+                isCrit: isCrit,
+                value: total_attack,
             }
-            attackRolls.push(attackStr);
+            attackRolls.push(attackObj);
         }
 
-        if (hit) {
+        if (isHit) {
             if (damageResults !== null) {
                 // Collect damage dice rolls for this attack
                 let damageDice = { attackIndex: i, dice: [], isCrit: isCrit, numericalComponents: [] };
@@ -868,7 +950,10 @@ async function performAttack(attackParams, diceBox) {
 
     if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0) 
         && !(performedAttackRoll && currentRollId != rollId)) {
-        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, isPhysical, diceBox, performedAttackRoll);
+        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, diceBox, performedAttackRoll, isHidden, isPhysical, isExternal, damageSeed);
+        if (!diceRolls.damageDice) {
+            return null;
+        }
     }
 
     diceRolls.damageDice.forEach(damageDice => {
