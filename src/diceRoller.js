@@ -153,7 +153,7 @@ function executeSharedRoll(diceArray, config, seed, simSpeed, destination) {
             'config': config,
             'seed': seed,
             'simSpeed': simSpeed,
-            'delay': 1000
+            'delay': 1500
         }, { destination }).catch(error => {
             console.error("Failed to send broadcast message:", error);
         });
@@ -398,6 +398,21 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
 
 export async function setupDiceRoller(id) {
 
+    // setTimeout(() => {
+    //     OBR.broadcast.sendMessage("quickdice.api.roll", { 
+    //         id: "myRoll", 
+    //         command: "5n+1d6 vs 12 dmg 3d8fi+1d4+2ne hp 100",
+    //         attackSeed: {a: 1, b: 2, c: 3, d: 4},
+    //         damageSeed: {a: 2, b: 2, c: 3, d: 4,}
+    //     }, { destination: 'LOCAL' });
+    //     OBR.broadcast.onMessage("quickdice.api.results", (event) => {
+    //         console.log(event.data);
+    //     });
+    //     OBR.broadcast.onMessage("quickdice.api.result." + "myRoll", (event) => {
+    //         console.log(event.data);
+    //     });
+    // }, 2000);
+
     playerName = id;
     updateCommandsList()
 
@@ -439,7 +454,7 @@ export async function setupDiceRoller(id) {
             attackCommandInput.classList.add('input-error');
             setTimeout(() => {
                 attackCommandInput.classList.remove('input-error');
-            }, 1000);
+            }, 1500);
 
             return;
         }
@@ -523,7 +538,7 @@ export async function setupDiceRoller(id) {
             const result = await performAttack(attackParams, diceBox, isHidden, isPhysical, true, attackSeed, damageSeed);
             if (result) {
                 const  { attackRolls, damageResults, hpResult } = result;
-                OBR.broadcast.sendMessage("quickdice.api.result." + id, { attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
+                OBR.broadcast.sendMessage("quickdice.api.result." + id, { id, attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
                 OBR.broadcast.sendMessage("quickdice.api.results", { id, attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
             }
             else {

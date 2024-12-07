@@ -71,3 +71,48 @@ learn-more: robert.wegner4@outlook.de
 ### 8. Saving and Loading Commands
 - Use `save mycommand`, `load mycommand`, and `delete mycommand` to save, load, and delete commands.
 - Your saved commands can be seen in the dropdown menu under "Commands".
+
+### 9. Usage of the Quickdice API
+
+Quickdice provides an API that allows integration with other Owlbear Rodeo (OBR) extensions. You can interact with the API using the broadcast messaging system provided by OBR.
+
+- **Initiate a Roll**
+
+  Send a message on the `quickdice.api.roll` channel with the necessary parameters:
+
+  ```javascript
+  OBR.broadcast.sendMessage("quickdice.api.roll", {
+    id: "myUniqueRollId", // A unique identifier for the roll
+    command: "5n+1d6 vs 12 dmg 3d8fi+1d4+2ne hp 100", // 5 natural attacks with +1d6 vs 12 AC dealing 3d8 fire + 1d4 neutral + 2 necrotic damage against 100 hp
+    isHidden: false,     // Set to true to hide the roll from other players
+    isPhysical: true,    // Set to true to use the physical dice simulation
+    attackSeed: { a: 12134, b: 72312, c: 58283, d: 96853 },  // Optional seed for attack rolls. Same seed implies same result
+    damageSeed: { a: 29524, b: 69375, c: 83349, d: 54335 }   // Optional seed for damage rolls. Same seed implies same result
+  }, { destination: "LOCAL" });
+  ```
+
+- **Listen for Results**
+
+  Listen on on the `quickdice.api.results` channel for all results and on
+  the `quickdice.api.result.myUniqueRollId` channel for a particular roll.
+
+   ```javascript
+  OBR.broadcast.onMessage("quickdice.api.results", (event) => {
+    yourCallback(event.data); //event.data.id is myUniqueRollId
+  });
+  ```
+  ```javascript
+  OBR.broadcast.onMessage("quickdice.api.results.myUniqueRollId", (event) => {
+    yourCallback(event.data); //event.data.id is myUniqueRollId
+  });
+  ```
+
+- **Listen for Errors**
+
+  Listen on the `quickdice.api.error` channel for errors.
+
+  ```javascript
+  OBR.broadcast.onMessage("quickdice.api.error", (event) => {
+    yourErrorCallback(event.data.id); //event.data.id is myUniqueRollId
+  });
+  ```
