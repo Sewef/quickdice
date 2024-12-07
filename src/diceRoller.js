@@ -398,12 +398,6 @@ function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
 
 export async function setupDiceRoller(id) {
 
-    setTimeout(() => {
-        OBR.broadcast.sendMessage("quickdice.api.roll", { id: "myRoll", command: "5n+1d6 vs 12 dmg 3d8fi+1d4+2ne hp 100" }, { destination: 'LOCAL' });
-        OBR.broadcast.onMessage("quickdice.api.results", (event) => {
-        });
-    }, 2000);
-
     playerName = id;
     updateCommandsList()
 
