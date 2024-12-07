@@ -1,8 +1,8 @@
 ---
 title: Quickdice
-description: Quickdice is a simple CLI-style application for complex d20 attack rolls.
+description: Quickdice is a simple dice rolling console that supports complex d20 attack rolls.
 author: Robert Wegner
-image: https://quickdice.onrender.com/icon.svg
+image: https://quickdice.onrender.com/hero.gif
 icon: https://quickdice.onrender.com/icon.svg
 tags:
   - die
