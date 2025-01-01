@@ -277,18 +277,29 @@ async function createDiceBox() {
     return diceBox
 }
 
-function createHistoryEntry(command, attackRolls, damageResults, hpResult) {
+function createHistoryEntry(playerName, command, attackRolls, damageResults, hpResult) {
     const card = document.createElement('div');
     card.classList.add('card');
     const entry = document.createElement('div');
     entry.classList.add('history-entry');
 
-    if (command !== null) {
-        const commandDiv = document.createElement('div');
-        commandDiv.innerText = textToEmoji(command);
-        commandDiv.classList.add('code-font'); 
-        entry.appendChild(commandDiv);
-    }
+    const headerDiv = document.createElement('div');
+    headerDiv.classList.add('history-card-header');
+        if (command !== null) {
+            const commandDiv = document.createElement('div');
+            commandDiv.innerText = textToEmoji(command);
+            commandDiv.classList.add('code-font'); 
+            headerDiv.appendChild(commandDiv);
+        }
+
+        if (playerName !== null) {
+            const playerNameDiv = document.createElement('div');
+            playerNameDiv.innerText = playerName;
+            playerNameDiv.classList.add('player-name');
+            headerDiv.appendChild(playerNameDiv);
+        }
+
+    entry.appendChild(headerDiv);
 
     if (attackRolls !== null) {
         const attackDiv = document.createElement('div');
@@ -465,7 +476,7 @@ export async function setupDiceRoller(id) {
         if (result) {
             const { attackRolls, damageResults, hpResult } = result;
         
-            const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
+            const historyEntry = createHistoryEntry(playerName, cleanedUserInput, attackRolls, damageResults, hpResult);
             if (historyEntry.textContent.length > 0) {
                 historyContainer.prepend(historyEntry);
             }
@@ -475,6 +486,7 @@ export async function setupDiceRoller(id) {
 
             if (!isHidden) {
                 OBR.broadcast.sendMessage("quickdice.diceResults", {
+                    'playerName': playerName,
                     'command': cleanedUserInput, 
                     'attackRolls': attackRolls, 
                     'damageResults': damageResults,
@@ -518,10 +530,10 @@ export async function setupDiceRoller(id) {
     });
 
     OBR.broadcast.onMessage("quickdice.diceResults", (event) => {
-        const { command, attackRolls, damageResults, hpResult } = event.data;
+        const { playerName, command, attackRolls, damageResults, hpResult } = event.data;
 
         const historyContainer = document.getElementById('history');
-        const historyEntry = createHistoryEntry(command, attackRolls, damageResults, hpResult);
+        const historyEntry = createHistoryEntry(playerName, command, attackRolls, damageResults, hpResult);
         if (historyEntry.textContent.length > 0) {
             historyContainer.prepend(historyEntry);
         }
@@ -543,7 +555,7 @@ export async function setupDiceRoller(id) {
                 const addToHistory = true;
                 if (addToHistory) {              
                     const historyContainer = document.getElementById('history');
-                    const historyEntry = createHistoryEntry(cleanedUserInput, attackRolls, damageResults, hpResult);
+                    const historyEntry = createHistoryEntry(playerName, cleanedUserInput, attackRolls, damageResults, hpResult);
                     if (historyEntry.textContent.length > 0) {
                         historyContainer.prepend(historyEntry);
                     }
@@ -553,6 +565,7 @@ export async function setupDiceRoller(id) {
         
                     if (!isHidden) {
                         OBR.broadcast.sendMessage("quickdice.diceResults", {
+                            'playerName': playerName,
                             'command': cleanedUserInput, 
                             'attackRolls': attackRolls, 
                             'damageResults': damageResults,

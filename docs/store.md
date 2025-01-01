@@ -5,7 +5,7 @@ author: Robert Wegner
 image: https://quickdice.onrender.com/hero.gif
 icon: https://quickdice.onrender.com/icon.svg
 tags:
-  - die
+  - dice
   - tool
   - combat
   - automation

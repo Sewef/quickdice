@@ -96,6 +96,17 @@ html {
   font-family: 'Courier New', Courier, monospace;
 }
 
+.player-name {
+  color: #09095a; /* Dark Blue color */
+  font-style: italic; /* Italicized text */
+  font-size: 0.85em; /* Slightly smaller than the default font size */
+}
+
+.history-card-header {
+  display: flex;
+  justify-content: space-between;
+}
+
 .attack-rolls,
 .damage-results {
   margin-bottom: 6px; /* *** Reduced from 8px to 6px *** */
