@@ -21,12 +21,17 @@ document.addEventListener("DOMContentLoaded", (event) => {
             <option value="commands">Commands</option>
           </select>
           <label for="viewSelector"></label>
+          <button id="logStateButton" class="icon-button" title="Toggle Logging">
+              <!-- Initially show local (single player) icon -->
+              <img src="single_player.svg" alt="Log State">
+            </button>
           <label>
-            <input type="checkbox" id="hiddenRoll" />
-            Hidden
+            Logging
           </label>
+          <button id="simStateButton" class="icon-button" title="Toggle Physical Simulation">
+              <img src="single_player.svg" alt="Simulation State">
+            </button>
           <label>
-            <input type="checkbox" id="physicalRoll" />
             Physical
           </label>
           <label>
@@ -128,8 +133,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
             <li>When the extension is in focus:
                 <ul>
                     <li><strong>CTRL+S</strong> to select the command input.</li>
-                    <li><strong>CTRL+H</strong> to toggle whether the roll results will be shared with other players.</li>
-                    <li><strong>CTRL+P</strong> to toggle the usage of physical dice rolls.</li>
+                    <li><strong>CTRL+L</strong> to toggle whether the roll results will be logged in the console and/or shared with other players.</li>
+                    <li><strong>CTRL+P</strong> to toggle the usage of physical dice rolls for yourself and/or other players.</li>
                 </ul>
             </li>
         </ul>
@@ -137,8 +142,8 @@ document.addEventListener("DOMContentLoaded", (event) => {
     <p>
         <h2>Saving and loading commands</h2>
         <ul>
-            <li>Use <span class="code-font">save mycommand</span, <span class="code-font">load mycommand</span> and <span class="code-font">delete mycommand</span>
-            to save, load and delete commands. ></li>
+            <li>Use <span class="code-font">save mycommand</span>, <span class="code-font">load mycommand</span> and <span class="code-font">delete mycommand</span>
+            to save, load and delete commands.</li>
             <li>You can view your saved commands can be seen in the dropdown menu under "commands".</li>
         </ul>
     </p>

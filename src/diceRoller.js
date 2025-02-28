@@ -3,8 +3,8 @@ import DiceBox from "@3d-dice/dice-box-deterministic";
 
 const uuid = () => Math.random().toString().substring(2) + Math.random().toString().substring(2)
 
-let isHidden;
-let isPhysical;
+let logState;
+let simState;
 let isRolling = false;
 let isCleared = true;
 let rollId;
@@ -12,7 +12,7 @@ let playerName = "default";
 let canvasWidth;
 let canvasHeight;
 let simSpeed = 20;
-
+let blockRollButton = false;
 
 /**
  * Debounce functions for better performance
@@ -450,15 +450,79 @@ export async function setupDiceRoller(id) {
     const historyContainer = document.getElementById('history');
     const rollButton = document.getElementById('rollButton');
 
-    const hiddenCheckbox = document.getElementById('hiddenRoll');
-    const physicalCheckbox = document.getElementById('physicalRoll');
+    const logStateButton = document.getElementById('logStateButton');
+    const simStateButton = document.getElementById('simStateButton');
+
+    logState = "local"; // default: 1 means local logging only
+    simState = "local";
+
+    // NEW: Function to update the log state icon.
+    function updateLogStateIcon() {
+        let icon;
+        switch (logState) {
+            case "none": icon = "no_player.svg"; break;
+            case "local": icon = "single_player.svg"; break;
+            case "share": icon = "multi_player.svg"; break;
+        }
+        // Insert both the normal and hover versions in a container.
+        logStateButton.innerHTML = `
+          <div class="svg-container">
+            <img class="normal" src="${icon}" alt="Log State">
+            <img class="hover" src="${icon.replace('.svg', '_hover.svg')}" alt="Log State Hover">
+          </div>`;
+    }
+    
+    // NEW: Function to update the physical simulation icon.
+    function updateSimStateIcon() {
+        let icon;
+        switch (simState) {
+            case "none": icon = "no_player.svg"; break;
+            case "local": icon = "single_player.svg"; break;
+            case "share": icon = "multi_player.svg"; break;
+        }
+        simStateButton.innerHTML = `
+          <div class="svg-container">
+            <img class="normal" src="${icon}" alt="Simulation State">
+            <img class="hover" src="${icon.replace('.svg', '_hover.svg')}" alt="Simulation State Hover">
+          </div>`;
+    }
+    
+
+    logStateButton.addEventListener('click', () => {
+        console.log(logState)
+        if (logState === "none") logState = "local";
+        else if (logState === "local") logState = "share";
+        else logState = "none";
+        updateLogStateIcon();
+        console.log(logState)
+    });
+
+    simStateButton.addEventListener('click', () => {
+        if (simState === "none") simState = "local";
+        else if (simState === "local") simState = "share";
+        else simState = "none";
+        updateSimStateIcon();
+    });
+
+    // NEW: Initialize icons on page load.
+    updateLogStateIcon();
+    updateSimStateIcon();
+
 
     rollButton.addEventListener('click', async () => {
+        if (blockRollButton) {
+            return
+        }
+        blockRollButton = true;
+        setTimeout(() => { blockRollButton = false }, 200);
 
         clearSharedRoll();
 
         const userInput = emojiToText(attackCommandInput.value).trim();
         const parseResults = parseInput(userInput);
+        if (!parseResults) {
+            return null;
+        }
         const cleanedUserInput = parseResults?.cleanedUserInput;
         const attackParams = parseResults?.attackParams;
         if (!attackParams) {
@@ -469,22 +533,22 @@ export async function setupDiceRoller(id) {
 
             return;
         }
-        isHidden = hiddenCheckbox.checked;
-        isPhysical = physicalCheckbox.checked;
 
-        const result = await performAttack(attackParams, diceBox, isHidden, isPhysical, false);
+        const result = await performAttack(attackParams, diceBox, logState, simState, false);
         if (result) {
             const { attackRolls, damageResults, hpResult } = result;
         
-            const historyEntry = createHistoryEntry(playerName, cleanedUserInput, attackRolls, damageResults, hpResult);
-            if (historyEntry.textContent.length > 0) {
-                historyContainer.prepend(historyEntry);
-            }
-            if (historyContainer.children.length >= 20) {
-                historyContainer.removeChild(historyContainer.lastChild);
+            if (logState != "none" && cleanedUserInput != "") {
+                const historyEntry = createHistoryEntry(playerName, cleanedUserInput, attackRolls, damageResults, hpResult);
+                if (historyEntry.textContent.length > 0) {
+                    historyContainer.prepend(historyEntry);
+                }
+                if (historyContainer.children.length >= 20) {
+                    historyContainer.removeChild(historyContainer.lastChild);
+                }
             }
 
-            if (!isHidden) {
+            if (logState == "share") {
                 OBR.broadcast.sendMessage("quickdice.diceResults", {
                     'playerName': playerName,
                     'command': cleanedUserInput, 
@@ -544,37 +608,37 @@ export async function setupDiceRoller(id) {
 
     OBR.broadcast.onMessage("quickdice.api.roll", async (event) => {
         try {
-            const { id, command, isHidden, isPhysical, attackSeed, damageSeed } = event.data;
+            const { id, command, logState, simState, attackSeed, damageSeed } = event.data;
             const parseResults = parseInput(command);
             const cleanedUserInput = parseResults?.cleanedUserInput;
             const attackParams = parseResults?.attackParams;
-            const result = await performAttack(attackParams, diceBox, isHidden, isPhysical, true, attackSeed, damageSeed);
+            const result = await performAttack(attackParams, diceBox, logState, simState, true, attackSeed, damageSeed);
             if (result) {
                 const  { attackRolls, damageResults, hpResult } = result;
 
-                const addToHistory = true;
-                if (addToHistory) {              
+                if (logState != "none" && cleanedUserInput != "") {              
                     const historyContainer = document.getElementById('history');
                     const historyEntry = createHistoryEntry(playerName, cleanedUserInput, attackRolls, damageResults, hpResult);
+                    
                     if (historyEntry.textContent.length > 0) {
                         historyContainer.prepend(historyEntry);
                     }
                     if (historyContainer.children.length >= 20) {
                         historyContainer.removeChild(historyContainer.lastChild);
                     }
-        
-                    if (!isHidden) {
-                        OBR.broadcast.sendMessage("quickdice.diceResults", {
-                            'playerName': playerName,
-                            'command': cleanedUserInput, 
-                            'attackRolls': attackRolls, 
-                            'damageResults': damageResults,
-                            'hpResult': hpResult
-                        }, {destination: 'REMOTE'}).catch(error => {
-                            console.error("Failed to send broadcast message:", error);
-                        });
-                    }
                 }
+                if (logState == "share") {
+                    OBR.broadcast.sendMessage("quickdice.diceResults", {
+                        'playerName': playerName,
+                        'command': cleanedUserInput, 
+                        'attackRolls': attackRolls, 
+                        'damageResults': damageResults,
+                        'hpResult': hpResult
+                    }, {destination: 'REMOTE'}).catch(error => {
+                        console.error("Failed to send broadcast message:", error);
+                    });
+                }
+
                 OBR.broadcast.sendMessage("quickdice.api.result." + id, { id, attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
                 OBR.broadcast.sendMessage("quickdice.api.results", { id, attackRolls, damageResults, hpResult }, { destination: 'LOCAL' });
             }
@@ -594,16 +658,14 @@ export async function setupDiceRoller(id) {
     });
 
     document.addEventListener('keydown', (event) => {
-        if ((event.ctrlKey || event.metaKey) && event.key === 'h') {
+        if ((event.ctrlKey || event.metaKey) && event.key === 'l') {
             event.preventDefault();
-            const hiddenRollCheckbox = document.getElementById('hiddenRoll');
-            hiddenRollCheckbox.checked = !hiddenRollCheckbox.checked;
-        }
-        if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
-            event.preventDefault(); 
-            const physicalRollCheckbox = document.getElementById('physicalRoll');
-            physicalRollCheckbox.checked = !physicalRollCheckbox.checked; 
-        }
+            document.getElementById('logStateButton').click();
+          }
+          if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
+            event.preventDefault();
+            document.getElementById('simStateButton').click();
+          }
         if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             diceBox.clear();
             isRolling = false;
@@ -721,8 +783,8 @@ function getThemeAndColor(damageType) {
     return mapping[key] || { theme: 'default', themeColor: '#ffffff' };
 }
 
-async function executeDiceRolls(diceList, diceBox, wait, isHidden, isPhysical, isExternal, seed) {
-    if (!isPhysical) {
+async function executeDiceRolls(diceList, diceBox, wait, logState, simState, isExternal, seed) {
+    if (simState == "none") {
         diceList.forEach(attackDice => {
             attackDice.dice.forEach(dice => {
                 const diceType = parseInt(dice.type.substring(1));
@@ -762,7 +824,7 @@ async function executeDiceRolls(diceList, diceBox, wait, isHidden, isPhysical, i
             });
         });
 
-        if (!isHidden && isPhysical) {           
+        if (simState == "share") {           
             executeSharedRoll(diceArray, time_config(), seed, simSpeed, 'REMOTE');
         }
 
@@ -816,7 +878,7 @@ async function executeDiceRolls(diceList, diceBox, wait, isHidden, isPhysical, i
 const sampler = () => Math.round(99999 * Math.random());
 const seedSampler = () => ({ a: sampler(), b: sampler(), c: sampler(), d: sampler() });
 
-async function performAttack(attackParams, diceBox, isHidden=false, isPhysical=true, isExternal=false, attackSeed=seedSampler(), damageSeed=seedSampler()) {
+async function performAttack(attackParams, diceBox, logState="share", simState="share", isExternal=false, attackSeed=seedSampler(), damageSeed=seedSampler()) {
     let attackRolls = [];
     let damageResults = [];
     let hpResult = null;
@@ -879,7 +941,7 @@ async function performAttack(attackParams, diceBox, isHidden=false, isPhysical=t
     var performedAttackRoll = false;
 
     if (!automaticHit && diceRolls.attackDice.length > 0) {
-        let promise = executeDiceRolls(diceRolls.attackDice, diceBox, false, isHidden, isPhysical, isExternal, attackSeed);
+        let promise = executeDiceRolls(diceRolls.attackDice, diceBox, false, logState, simState, isExternal, attackSeed);
         currentRollId = rollId;
         performedAttackRoll = true;
         diceRolls.attackDice = await promise;
@@ -996,7 +1058,7 @@ async function performAttack(attackParams, diceBox, isHidden=false, isPhysical=t
 
     if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0) 
         && !(performedAttackRoll && currentRollId != rollId)) {
-        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, diceBox, performedAttackRoll, isHidden, isPhysical, isExternal, damageSeed);
+        diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, diceBox, performedAttackRoll, logState, simState, isExternal, damageSeed);
         if (!diceRolls.damageDice) {
             return null;
         }
@@ -1078,6 +1140,9 @@ async function performAttack(attackParams, diceBox, isHidden=false, isPhysical=t
 }
 
 function parseInput(userInput) {
+    if (userInput == "") {
+        return null;
+    }
     const strippedInput = userInput.replace(/\s+/g, '').toLowerCase();
 
     const keywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm', 'save', 'load', 'delete'];

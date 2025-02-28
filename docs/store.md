@@ -6,8 +6,6 @@ image: https://quickdice.onrender.com/hero.gif
 icon: https://quickdice.onrender.com/icon.svg
 tags:
   - dice
-  - tool
-  - combat
   - automation
 manifest: https://quickdice.onrender.com/manifest.json
 learn-more: robert.wegner4@outlook.de
@@ -65,8 +63,8 @@ learn-more: robert.wegner4@outlook.de
 - You can click on entries to load their command into the command input.
 - When the extension is in focus:
   - **CTRL+S** to select the command input.
-  - **CTRL+H** to toggle whether the roll results will be shared with other players.
-  - **CTRL+P** to toggle the usage of physical dice rolls.
+  - **CTRL+L** to toggle whether the roll results will be logged in your console and shared with other players .
+  - **CTRL+P** to toggle the usage of physical dice rolls for yourself and whether they should be shared other players.
 
 ### 8. Saving and Loading Commands
 - Use `save mycommand`, `load mycommand`, and `delete mycommand` to save, load, and delete commands.
@@ -84,8 +82,8 @@ Quickdice provides an API that allows integration with other Owlbear Rodeo (OBR)
   OBR.broadcast.sendMessage("quickdice.api.roll", {
     id: "myUniqueRollId", // A unique identifier for the roll
     command: "5n+1d6 vs 12 dmg 3d8fi+1d4+2ne hp 100", // 5 natural attacks with +1d6 vs 12 AC dealing 3d8 fire + 1d4 neutral + 2 necrotic damage against 100 hp
-    isHidden: false,     // Set to true to hide the roll from other players
-    isPhysical: true,    // Set to true to use the physical dice simulation
+    logState: "local",     // Set to "none" to stop logging and "share" to log to other players
+    simState: "local",    // Set to "none" to stop usage of the physical dice simulation and "share" to display it to other players.
     attackSeed: { a: 12134, b: 72312, c: 58283, d: 96853 },  // Optional seed for attack rolls. Same seed implies same result
     damageSeed: { a: 29524, b: 69375, c: 83349, d: 54335 }   // Optional seed for damage rolls. Same seed implies same result
   }, { destination: "LOCAL" });

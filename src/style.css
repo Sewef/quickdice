@@ -412,6 +412,64 @@ html {
   box-shadow: 0 0 4px var(--button-hover-bg); /* Subtle focus shadow */
 }
 
+/* New class for SVG icon buttons */
+.controls button.icon-button {
+  border: none;
+  background: transparent;
+  padding: 2px; /* Adjust padding to center your SVG nicely */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Hover effect: change background and scale slightly */
+.controls button.icon-button:hover {
+  transform: scale(1.05);
+}
+
+/* Active (pressed) state: scale down a bit */
+.controls button.icon-button:active {
+  transform: scale(0.95);
+}
+
+/* Ensure the SVG itself is sized and transitions smoothly */
+.controls button.icon-button img {
+  width: 26px;
+  height: 26px;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+
+.svg-container {
+  position: relative;
+  display: inline-block;
+  width: 26px;
+  height: 26px;
+}
+
+.svg-container img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 26px;
+  height: 26px;
+  transition: opacity 0.2s ease;
+}
+
+/* Start with the hover image invisible */
+.svg-container img.hover {
+  opacity: 0;
+}
+
+/* When hovering the button, fade in the hover image while fading out the normal image */
+.icon-button:hover .svg-container img.hover {
+  opacity: 1;
+}
+.icon-button:hover .svg-container img.normal {
+  opacity: 0;
+}
+
 
 /* Additional styles for the sliders */
 .options label {
@@ -426,7 +484,7 @@ html {
 
 .options input[type="range"] {
   -webkit-appearance: none; /* Remove default styles */
-  width: 90px; /* Set width for the slider */
+  width: 80px; /* Set width for the slider */
   height: 6px; /* Height of the slider */
   background: var(--button-bg); /* Match background color */
   border-radius: 10px; /* Rounded edges for the slider */
@@ -469,17 +527,6 @@ html {
   border-radius: 50%;
   background: var(--button-hover-bg); /* Thumb color */
   border: none;
-  transition: background 0.3s ease;
-}
-
-.options input[type="range"] {
-  -webkit-appearance: none; /* Remove default styling */
-  width: 90px; /* Set width for the slider */
-  height: 6px; /* Track height */
-  background: var(--button-bg); /* Track background color */
-  border-radius: 10px; /* Rounded edges for the track */
-  outline: none; /* Remove outline */
-  cursor: pointer; /* Pointer cursor on hover */
   transition: background 0.3s ease;
 }
 
