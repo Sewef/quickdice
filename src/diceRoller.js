@@ -450,6 +450,7 @@ export async function setupDiceRoller(id) {
     const historyContainer = document.getElementById('history');
     const rollButton = document.getElementById('rollButton');
 
+    
     const logStateButton = document.getElementById('logStateButton');
     const simStateButton = document.getElementById('simStateButton');
 
@@ -457,6 +458,25 @@ export async function setupDiceRoller(id) {
     simState = "local";
 
     // NEW: Function to update the log state icon.
+
+    function preloadSVGs() {
+        const icons = [
+          "no_player.svg",
+          "no_player_hover.svg",
+          "single_player.svg",
+          "single_player_hover.svg",
+          "multi_player.svg",
+          "multi_player_hover.svg"
+        ];
+        icons.forEach(src => {
+          const img = new Image();
+          img.src = src;
+        });
+      }
+      
+    // Preload images immediately on page load.
+    preloadSVGs();
+
     function updateLogStateIcon() {
         let icon;
         switch (logState) {
