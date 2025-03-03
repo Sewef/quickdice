@@ -489,12 +489,10 @@ export async function setupDiceRoller(id) {
     
 
     logStateButton.addEventListener('click', () => {
-        console.log(logState)
         if (logState === "none") logState = "local";
         else if (logState === "local") logState = "share";
         else logState = "none";
         updateLogStateIcon();
-        console.log(logState)
     });
 
     simStateButton.addEventListener('click', () => {
@@ -1568,7 +1566,6 @@ function parseInput(userInput) {
             return null;
         }
     }
-
     if (num_attacks !== null && (num_attacks < 1 || !Number.isInteger(num_attacks))) {
         console.error(`Invalid number of attacks: ${num_attacks}`);
         return null;
