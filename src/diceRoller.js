@@ -21,26 +21,26 @@ let blockRollButton = false;
  */
 export const debounce = (fn) => {
 
-	// Setup a timer
-	let timeout;
+    // Setup a timer
+    let timeout;
 
-	// Return a function to run debounced
-	return function () {
+    // Return a function to run debounced
+    return function () {
 
-		// Setup the arguments
-		let context = this;
-		let args = arguments;
+        // Setup the arguments
+        let context = this;
+        let args = arguments;
 
-		// If there's a timer, cancel it
-		if (timeout) {
-			window.cancelAnimationFrame(timeout);
-		}
+        // If there's a timer, cancel it
+        if (timeout) {
+            window.cancelAnimationFrame(timeout);
+        }
 
-		// Setup the new requestAnimationFrame()
-		timeout = window.requestAnimationFrame(function () {
-			fn.apply(context, args);
-		});
-	};
+        // Setup the new requestAnimationFrame()
+        timeout = window.requestAnimationFrame(function () {
+            fn.apply(context, args);
+        });
+    };
 }
 
 function rollDice(number, diceType) {
@@ -101,7 +101,8 @@ const defaultConfig = {
 function time_config() {
     let t = getSpeedFromSlider();
     t = 1;
-    return {... defaultConfig, ...{
+    return {
+        ...defaultConfig, ...{
             gravity: defaultConfig.gravity / (t * t),
             mass: defaultConfig.mass,
             friction: defaultConfig.friction,
@@ -121,9 +122,9 @@ function clearSharedRoll() {
     OBR.broadcast.sendMessage("quickdice.popoverRemove", {
         'id': rollId
     }, { destination: 'REMOTE' })
-    .catch(error => {
-        console.error(`Failed to send closePopover message for ID ${id}:`, error);
-    });
+        .catch(error => {
+            console.error(`Failed to send closePopover message for ID ${id}:`, error);
+        });
 }
 
 function executeSharedRoll(diceArray, config, seed, simSpeed, destination) {
@@ -199,7 +200,7 @@ function closePopover() {
 async function resizeCanvas(diceBox) {
     const canvas = document.getElementById('dice-canvas');
     const rect = canvas.getBoundingClientRect();
-    if (!canvasWidth || rect.width != canvasWidth || !canvasHeight ||rect.height != canvasHeight) {
+    if (!canvasWidth || rect.width != canvasWidth || !canvasHeight || rect.height != canvasHeight) {
         canvasWidth = rect.width;
         canvasHeight = rect.height;
         clearSharedRoll();
@@ -233,7 +234,7 @@ async function createDiceBox() {
 
     const config = time_config();
 
-    var diceBox = new DiceBox({... config, ... { canvasWidth: canvasWidth, canvasHeight: canvasHeight }});
+    var diceBox = new DiceBox({ ...config, ... { canvasWidth: canvasWidth, canvasHeight: canvasHeight } });
 
     const canvas = document.getElementById('dice-canvas');
     canvas.style.pointerEvents = "none";
@@ -245,7 +246,7 @@ async function createDiceBox() {
     canvas.style.zIndex = '10';
 
     await diceBox.init();
-    
+
     let debouncedResizeHandler = debounce(async () => {
         await OBR.broadcast.sendMessage("quickdice.popoverViewport", {
             'viewportWidth': window.innerWidth,
@@ -285,26 +286,26 @@ function createHistoryEntry(playerName, command, attackRolls, damageResults, hpR
 
     const headerDiv = document.createElement('div');
     headerDiv.classList.add('history-card-header');
-        if (command !== null) {
-            const commandDiv = document.createElement('div');
-            commandDiv.innerText = textToEmoji(command);
-            commandDiv.classList.add('code-font'); 
-            headerDiv.appendChild(commandDiv);
-        }
+    if (command !== null) {
+        const commandDiv = document.createElement('div');
+        commandDiv.innerText = textToEmoji(command);
+        commandDiv.classList.add('code-font');
+        headerDiv.appendChild(commandDiv);
+    }
 
-        if (playerName !== null) {
-            const playerNameDiv = document.createElement('div');
-            playerNameDiv.innerText = playerName;
-            playerNameDiv.classList.add('player-name');
-            headerDiv.appendChild(playerNameDiv);
-        }
+    if (playerName !== null) {
+        const playerNameDiv = document.createElement('div');
+        playerNameDiv.innerText = playerName;
+        playerNameDiv.classList.add('player-name');
+        headerDiv.appendChild(playerNameDiv);
+    }
 
     entry.appendChild(headerDiv);
 
     if (attackRolls !== null) {
         const attackDiv = document.createElement('div');
         const attackStrings = attackRolls.map((attackObj) => {
-            const {isHit, isCrit, value } = attackObj;
+            const { isHit, isCrit, value } = attackObj;
             let attackStr;
             if (isCrit) {
                 attackStr = `<span class="crit">${value}</span>`;
@@ -436,7 +437,7 @@ export async function setupDiceRoller(id) {
         '4d+3 vs {ac} dmg {count}d8+{bonus}ne+2d4ac',
         '3a+2 vs {ac} dmg {count}d6co+{bonus}+1d6pi+5'
     ];
-    
+
     const randomAC = Math.floor(Math.random() * 4) + 10;
     const randomBonus = Math.floor(Math.random() * 5) + 1;
     const randomCount = Math.floor(Math.random() * 3) + 1;
@@ -450,7 +451,7 @@ export async function setupDiceRoller(id) {
     const historyContainer = document.getElementById('history');
     const rollButton = document.getElementById('rollButton');
 
-    
+
     const logStateButton = document.getElementById('logStateButton');
     const simStateButton = document.getElementById('simStateButton');
 
@@ -461,19 +462,19 @@ export async function setupDiceRoller(id) {
 
     function preloadSVGs() {
         const icons = [
-          "no_player.svg",
-          "no_player_hover.svg",
-          "single_player.svg",
-          "single_player_hover.svg",
-          "multi_player.svg",
-          "multi_player_hover.svg"
+            "no_player.svg",
+            "no_player_hover.svg",
+            "single_player.svg",
+            "single_player_hover.svg",
+            "multi_player.svg",
+            "multi_player_hover.svg"
         ];
         icons.forEach(src => {
-          const img = new Image();
-          img.src = src;
+            const img = new Image();
+            img.src = src;
         });
-      }
-      
+    }
+
     // Preload images immediately on page load.
     preloadSVGs();
 
@@ -491,7 +492,7 @@ export async function setupDiceRoller(id) {
             <img class="hover" src="${icon.replace('.svg', '_hover.svg')}" alt="Log State Hover">
           </div>`;
     }
-    
+
     // NEW: Function to update the physical simulation icon.
     function updateSimStateIcon() {
         let icon;
@@ -506,7 +507,7 @@ export async function setupDiceRoller(id) {
             <img class="hover" src="${icon.replace('.svg', '_hover.svg')}" alt="Simulation State Hover">
           </div>`;
     }
-    
+
 
     logStateButton.addEventListener('click', () => {
         if (logState === "none") logState = "local";
@@ -555,7 +556,7 @@ export async function setupDiceRoller(id) {
         const result = await performAttack(attackParams, diceBox, logState, simState, false);
         if (result) {
             const { attackRolls, damageResults, hpResult } = result;
-        
+
             if (logState != "none" && cleanedUserInput != "") {
                 const historyEntry = createHistoryEntry(playerName, cleanedUserInput, attackRolls, damageResults, hpResult);
                 if (historyEntry.textContent.length > 0) {
@@ -569,11 +570,11 @@ export async function setupDiceRoller(id) {
             if (logState == "share") {
                 OBR.broadcast.sendMessage("quickdice.diceResults", {
                     'playerName': playerName,
-                    'command': cleanedUserInput, 
-                    'attackRolls': attackRolls, 
+                    'command': cleanedUserInput,
+                    'attackRolls': attackRolls,
                     'damageResults': damageResults,
                     'hpResult': hpResult
-                }, {destination: 'REMOTE'}).catch(error => {
+                }, { destination: 'REMOTE' }).catch(error => {
                     console.error("Failed to send broadcast message:", error);
                 });
             }
@@ -590,7 +591,7 @@ export async function setupDiceRoller(id) {
             localStorage.setItem('commands', JSON.stringify(sortedCommands));
             updateCommandsList();
         }
-        
+
         if (attackParams.load_content !== null) {
             const commandsJSON = localStorage.getItem('commands');
             if (commandsJSON) {
@@ -620,7 +621,7 @@ export async function setupDiceRoller(id) {
             historyContainer.prepend(historyEntry);
         }
         if (historyContainer.children.length >= 20) {
-            historyContainer.removeChild(historyContainer.lastChild); 
+            historyContainer.removeChild(historyContainer.lastChild);
         }
     });
 
@@ -632,12 +633,12 @@ export async function setupDiceRoller(id) {
             const attackParams = parseResults?.attackParams;
             const result = await performAttack(attackParams, diceBox, logState, simState, true, attackSeed, damageSeed);
             if (result) {
-                const  { attackRolls, damageResults, hpResult } = result;
+                const { attackRolls, damageResults, hpResult } = result;
 
-                if (logState != "none" && cleanedUserInput != "") {              
+                if (logState != "none" && cleanedUserInput != "") {
                     const historyContainer = document.getElementById('history');
                     const historyEntry = createHistoryEntry(playerName, cleanedUserInput, attackRolls, damageResults, hpResult);
-                    
+
                     if (historyEntry.textContent.length > 0) {
                         historyContainer.prepend(historyEntry);
                     }
@@ -648,11 +649,11 @@ export async function setupDiceRoller(id) {
                 if (logState == "share") {
                     OBR.broadcast.sendMessage("quickdice.diceResults", {
                         'playerName': playerName,
-                        'command': cleanedUserInput, 
-                        'attackRolls': attackRolls, 
+                        'command': cleanedUserInput,
+                        'attackRolls': attackRolls,
                         'damageResults': damageResults,
                         'hpResult': hpResult
-                    }, {destination: 'REMOTE'}).catch(error => {
+                    }, { destination: 'REMOTE' }).catch(error => {
                         console.error("Failed to send broadcast message:", error);
                     });
                 }
@@ -679,11 +680,11 @@ export async function setupDiceRoller(id) {
         if ((event.ctrlKey || event.metaKey) && event.key === 'l') {
             event.preventDefault();
             document.getElementById('logStateButton').click();
-          }
-          if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
+        }
+        if ((event.ctrlKey || event.metaKey) && event.key === 'p') {
             event.preventDefault();
             document.getElementById('simStateButton').click();
-          }
+        }
         if ((event.ctrlKey || event.metaKey) && event.key === 'c') {
             diceBox.clear();
             isRolling = false;
@@ -691,11 +692,11 @@ export async function setupDiceRoller(id) {
             clearSharedRoll();
         }
         if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-            event.preventDefault(); 
+            event.preventDefault();
             attackCommandInput.select();
         }
         if (event.key === 'Enter') {
-            event.preventDefault(); 
+            event.preventDefault();
             const rollButton = document.getElementById('rollButton');
             if (rollButton) {
                 rollButton.click();
@@ -712,7 +713,7 @@ export async function setupDiceRoller(id) {
         updateSimSpeed();
     });
 
-    attackCommandInput.addEventListener('input', function() {
+    attackCommandInput.addEventListener('input', function () {
         const { text, cursorPos } = textToEmojiGetCursor(attackCommandInput.value, attackCommandInput.selectionStart);
         attackCommandInput.value = text;
         attackCommandInput.setSelectionRange(cursorPos, cursorPos);
@@ -752,10 +753,10 @@ function parseDamageExpression(damageExpr) {
         }
 
         let operator = match[1];
-        if (operator === '') operator = '+'; 
+        if (operator === '') operator = '+';
         const number = parseInt(match[2], 10);
         const diceType = match[3] ? parseInt(match[3], 10) : null;
-        const damageType = match[4] ? match[4].toLowerCase() : ''; 
+        const damageType = match[4] ? match[4].toLowerCase() : '';
 
         if (isNaN(number)) {
             console.error(`Invalid number in damage instance: "${match[2]}"`);
@@ -782,20 +783,20 @@ function parseDamageExpression(damageExpr) {
 
 function getThemeAndColor(damageType) {
     const mapping = {
-        'ac': { theme: 'blue-green-metal' },            
+        'ac': { theme: 'blue-green-metal' },
         'co': { theme: 'smooth', themeColor: '#00ffff' },
         'fi': { theme: 'smooth', themeColor: '#ff4500' },
         'fo': { theme: 'smooth', themeColor: '#8b4513' },
         'li': { theme: 'rust', themeColor: '#ffff00' },
-        'ne': { theme: 'smooth', themeColor: '#2f3f43' }, 
+        'ne': { theme: 'smooth', themeColor: '#2f3f43' },
         'po': { theme: 'smooth', themeColor: '#008000' },
         'ps': { theme: 'smooth', themeColor: '#ee82ee' },
         'ra': { theme: 'smooth', themeColor: '#ffd700' },
         'th': { theme: 'smooth', themeColor: '#800080' },
-        'bl': { theme: 'rock', themeColor: '#888888'},
+        'bl': { theme: 'rock', themeColor: '#888888' },
         'pi': { theme: 'smooth', themeColor: '#c0c0c0' },
         'sl': { theme: 'smooth', themeColor: '#708090' },
-        '':   { theme: 'smooth', themeColor: '#ffffff' },
+        '': { theme: 'smooth', themeColor: '#ffffff' },
     };
     const key = (damageType || '').substring(0, 2).toLowerCase();
     return mapping[key] || { theme: 'default', themeColor: '#ffffff' };
@@ -811,7 +812,7 @@ async function executeDiceRolls(diceList, diceBox, wait, logState, simState, isE
                 dice.total = total;
             });
         });
-    } 
+    }
     else {
         rollId = uuid();
         if (wait) {
@@ -842,7 +843,7 @@ async function executeDiceRolls(diceList, diceBox, wait, logState, simState, isE
             });
         });
 
-        if (simState == "share") {           
+        if (simState == "share") {
             executeSharedRoll(diceArray, time_config(), seed, simSpeed, 'REMOTE');
         }
 
@@ -856,7 +857,7 @@ async function executeDiceRolls(diceList, diceBox, wait, logState, simState, isE
         else {
             rollFunction = () => executeSharedRoll(diceArray, time_config(), seed, simSpeed, 'LOCAL');
         }
-        
+
         try {
             const timeout = (ms) => {
                 return new Promise((_, reject) => {
@@ -868,12 +869,12 @@ async function executeDiceRolls(diceList, diceBox, wait, logState, simState, isE
             results = await Promise.race([
                 rollFunction(),
                 timeout(12000)
-            ]);   
+            ]);
         }
-        catch{
+        catch {
             return null;
         }
-        
+
         const groupTotals = {};
         results.forEach((dieResult) => {
             const { groupId, value } = dieResult;
@@ -896,7 +897,7 @@ async function executeDiceRolls(diceList, diceBox, wait, logState, simState, isE
 const sampler = () => Math.round(99999 * Math.random());
 const seedSampler = () => ({ a: sampler(), b: sampler(), c: sampler(), d: sampler() });
 
-async function performAttack(attackParams, diceBox, logState="share", simState="share", isExternal=false, attackSeed=seedSampler(), damageSeed=seedSampler()) {
+async function performAttack(attackParams, diceBox, logState = "share", simState = "share", isExternal = false, attackSeed = seedSampler(), damageSeed = seedSampler()) {
     let attackRolls = [];
     let damageResults = [];
     let hpResult = null;
@@ -1074,7 +1075,7 @@ async function performAttack(attackParams, diceBox, logState="share", simState="
         }
     }
 
-    if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0) 
+    if (diceRolls.damageDice.some(attackRoll => attackRoll.dice.length > 0)
         && !(performedAttackRoll && currentRollId != rollId)) {
         diceRolls.damageDice = await executeDiceRolls(diceRolls.damageDice, diceBox, performedAttackRoll, logState, simState, isExternal, damageSeed);
         if (!diceRolls.damageDice) {
@@ -1161,6 +1162,10 @@ function parseInput(userInput) {
     if (userInput == "") {
         return null;
     }
+
+    userInput = userInput.replace(/\s+/g, '').toLowerCase();
+    if (/^[nad]/.test(userInput)) userInput = '1' + userInput; // Prepend '1' if it starts with 'n', 'a', or 'd'
+
     const strippedInput = userInput.replace(/\s+/g, '').toLowerCase();
 
     const keywords = ['atk', 'vs', 'dmg', 'hp', 'res', 'vul', 'imm', 'save', 'load', 'delete'];
@@ -1195,10 +1200,10 @@ function parseInput(userInput) {
         }
     }
 
-    const cleanedComponents = components.filter(component => 
+    const cleanedComponents = components.filter(component =>
         component.keyword !== 'save' && component.keyword !== 'load' && component.keyword !== 'delete'
     );
-    
+
     const cleanedUserInput = cleanedComponents
         .map(component => component.keyword ? component.keyword + ' ' + component.text : component.text)
         .join(' ');
@@ -1330,7 +1335,7 @@ function parseInput(userInput) {
     }
 
     function isAttackRoll(text) {
-        const attackRollPattern = /^(\d+)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)(?:[+-](?:\d+d\d+|\d+))*)?$/i;
+        const attackRollPattern = /^(\d*)([nad])([a-z]*)([+-](?:\d+d\d+|\d+)(?:[+-](?:\d+d\d+|\d+))*)?$/i;
         return attackRollPattern.test(text);
     }
 
@@ -1596,23 +1601,25 @@ function parseInput(userInput) {
         return null;
     }
 
-    return {'attackParams': {
-        num_attacks,
-        modifier,
-        attack_bonus,
-        attack_color,
-        base_target_ac,
-        ac_modifier,
-        target_ac,
-        damage_components,
-        hp,
-        res,
-        vul,
-        imm,
-        save_content,
-        load_content,
-        delete_content
-    }, 'cleanedUserInput': cleanedUserInput};
+    return {
+        'attackParams': {
+            num_attacks,
+            modifier,
+            attack_bonus,
+            attack_color,
+            base_target_ac,
+            ac_modifier,
+            target_ac,
+            damage_components,
+            hp,
+            res,
+            vul,
+            imm,
+            save_content,
+            load_content,
+            delete_content
+        }, 'cleanedUserInput': cleanedUserInput
+    };
 }
 
 function getDamageColor(damage) {
@@ -1647,7 +1654,7 @@ const damageTypeEmojis = {
     "ps": "🧠",
     "ra": "🌟",
     "sl": "⚔️",
-    "th": "🌩️" 
+    "th": "🌩️"
 };
 
 function textToEmoji(text) {
