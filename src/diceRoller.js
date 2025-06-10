@@ -455,8 +455,8 @@ export async function setupDiceRoller(id) {
     const logStateButton = document.getElementById('logStateButton');
     const simStateButton = document.getElementById('simStateButton');
 
-    logState = "local"; // default: 1 means local logging only
-    simState = "local";
+    logState = "share"; // default: 1 means local logging only
+    simState = "share";
 
     // NEW: Function to update the log state icon.
 
